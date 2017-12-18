@@ -24,8 +24,6 @@ void proto_log(int level, const char* format, ...)
 // ./protoxls scheme.proto
 int main(int argc, char* argv[])
 {
-    setlocale(LC_ALL, "chs");
-
     if (argc < 2) {
         help();
         return -1;

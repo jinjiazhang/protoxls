@@ -43,7 +43,7 @@
 				AdditionalIncludeDirectories="..\include\libxl;&quot;..\protobuf-3.4.1\src&quot;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="0"
-				RuntimeLibrary="2"
+				RuntimeLibrary="3"
 				WarningLevel="3"
 				DebugInformationFormat="4"
 			/>
@@ -58,7 +58,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libxl.lib libprotobuf.lib"
+				AdditionalDependencies="libxl.lib libprotobufd.lib"
 				AdditionalLibraryDirectories="../libs"
 				GenerateDebugInformation="true"
 				TargetMachine="1"
@@ -110,9 +110,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
-				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="&quot;..\protobuf-3.4.1\src&quot;"
+				Optimization="0"
+				EnableIntrinsicFunctions="false"
+				AdditionalIncludeDirectories="..\include\libxl;&quot;..\protobuf-3.4.1\src&quot;"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				WarningLevel="3"
@@ -129,7 +129,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libprotobuf.lib"
+				AdditionalDependencies="libxl.lib libprotobuf.lib"
 				AdditionalLibraryDirectories="../libs"
 				GenerateDebugInformation="true"
 				OptimizeReferences="2"

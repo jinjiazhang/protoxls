@@ -58,14 +58,32 @@ bool ProtoExcel::ParseConfig(const Descriptor* descriptor)
     vector<Message*> datas;
     for (int i = 0; i < name_size; i++)
     {
-        ExcelParser parser;
+        ExcelParser parser(&factory_);
         PROTO_DO(parser.LoadSheet(excel_names[i], sheet_names[i]));
-        PROTO_DO(parser.ParserData(descriptor, datas));
+        PROTO_DO(parser.ParseData(descriptor, datas));
     }
+
+    parseds_.insert(std::make_pair(descriptor, datas));
     return true;
 }
 
 bool ProtoExcel::ExportResult()
 {
+    SchemeParsed::iterator it = parseds_.begin();
+    for (; it != parseds_.end(); ++it)
+    {
+        proto_info("%s:\n", it->first->name().c_str());
+        vector<Message*>& datas = it->second;
+        for (int i = 0; i < datas.size(); i++)
+        {
+            string output;
+            Message* message = datas[i];
+            const Descriptor* descriptor = message->GetDescriptor();
+            const FileDescriptor* file_desc = descriptor->file();
+            const DescriptorPool* desc_pool = file_desc->pool();
+            util::MessageToJsonString(*message, &output);
+            proto_info("[%d]: %s\n", i, output.c_str());
+        }
+    }
     return true;
 }

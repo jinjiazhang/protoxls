@@ -38,6 +38,9 @@ private:
     bool ParseExcel(const Descriptor* descriptor, vector<const Message*>& datas, string excel_name, string sheet_name);
 
 private:
+    typedef std::map<const Descriptor*, vector<Message*>> SchemeParsed;
+    SchemeParsed parseds_;
+
     ProtoErrorCollector errorCollector_;
     DiskSourceTree sourceTree_;
     Importer importer_;

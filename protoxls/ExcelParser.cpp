@@ -1,9 +1,10 @@
 #include "ExcelParser.h"
 
-ExcelParser::ExcelParser()
+ExcelParser::ExcelParser(MessageFactory* factory)
 {
     book_ = NULL;
     sheet_ = NULL;
+    factory_ = factory;
 }
 
 ExcelParser::~ExcelParser()
@@ -63,10 +64,17 @@ bool ExcelParser::LoadSheet(string excel_name, string sheet_name)
     return true;
 }
 
-bool ExcelParser::ParserData(const Descriptor* descriptor, vector<Message*>& datas)
+bool ExcelParser::ParseData(const Descriptor* descriptor, vector<Message*>& datas)
 {
     PROTO_ASSERT(sheet_ != NULL);
     PROTO_DO(ReadColumns());
+
+    for (int row = 1; row < sheet_->lastRow(); row++)
+    {
+        Message* message = factory_->GetPrototype(descriptor)->New();
+        PROTO_DO(ParseMessage(message, descriptor, row, ""));
+        datas.push_back(message);
+    }
     return true;
 }
 
@@ -82,7 +90,115 @@ bool ExcelParser::ReadColumns()
     {
         PROTO_ASSERT(sheet_->cellType(0, col) == CELLTYPE_STRING);
         const char* text = sheet_->readStr(0, col);
-        columns_.insert(std::make_pair(string(text), col));
+        columns_.insert(std::make_pair(ansi2utf8(text), col));
     }
+    return true;
+}
+
+string ExcelParser::GetFiledText(const FieldDescriptor* field, string base)
+{
+    string text_name = field->options().GetExtension(text);
+    if (text_name.empty()) 
+    {
+        text_name = field->name();
+    }
+    return base + text_name;
+}
+
+bool ExcelParser::ParseMessage(Message* message, const Descriptor* descriptor, int row, string base)
+{
+    for (int i = 0; i < descriptor->field_count(); i++)
+    {
+        const FieldDescriptor* field = descriptor->field(i);
+        PROTO_DO(ParseField(message, field, row, base));
+    }
+    return true;
+}
+
+bool ExcelParser::ParseField(Message* message, const FieldDescriptor* field, int row, string base)
+{
+    if (field->is_map())
+        return ParseTable(message, field, row, base);
+    else if (field->is_required())
+        return ParseSingle(message, field, row, base);
+    else if (field->is_optional())
+        return ParseSingle(message, field, row, base);
+    else if (field->is_repeated())
+        return ParseRepeated(message, field, row, base);
+    else
+        return false;
+    return true;
+}
+
+bool ExcelParser::ParseSingle(Message* message, const FieldDescriptor* field, int row, string base)
+{
+    string text_name = GetFiledText(field, base);
+    if (columns_.find(text_name) == columns_.end())
+    {
+        proto_error("ParseSingle column not found, name=%s\n", text_name.c_str());
+        return false;
+    }
+
+    int col = columns_[text_name];
+    CellType cell_type = sheet_->cellType(row, col);
+    if (cell_type == CELLTYPE_EMPTY)
+    {
+        proto_warn("ParseSingle cell empty, name=%s, row=%d\n", text_name.c_str(), row);
+        return true;
+    }
+
+    const Reflection* reflection = message->GetReflection();
+    switch (field->cpp_type())
+    {
+    case FieldDescriptor::CPPTYPE_DOUBLE:
+        reflection->SetDouble(message, field, (double)sheet_->readNum(row, col));
+        break;
+    case FieldDescriptor::CPPTYPE_FLOAT:
+        reflection->SetFloat(message, field, (float)sheet_->readNum(row, col));
+        break;
+    case FieldDescriptor::CPPTYPE_INT32:
+        reflection->SetInt32(message, field, (int32)sheet_->readNum(row, col));
+        break;
+    case FieldDescriptor::CPPTYPE_UINT32:
+        reflection->SetUInt32(message, field, (uint32)sheet_->readNum(row, col));
+        break;
+    case FieldDescriptor::CPPTYPE_INT64:
+        reflection->SetInt64(message, field, (int64)sheet_->readNum(row, col));
+        break;
+    case FieldDescriptor::CPPTYPE_UINT64:
+        reflection->SetUInt64(message, field, (uint64)sheet_->readNum(row, col)); 
+        break;
+    case FieldDescriptor::CPPTYPE_ENUM:
+        reflection->SetEnumValue(message, field, (int)sheet_->readNum(row, col));
+        break;
+    case FieldDescriptor::CPPTYPE_BOOL:
+        reflection->SetBool(message, field, (bool)sheet_->readBool(row, col));
+        break;
+    case FieldDescriptor::CPPTYPE_STRING:
+        {
+            const char* text = sheet_->readStr(row, col);
+            reflection->SetString(message, field, ansi2utf8(text));
+        }
+        break;
+    case FieldDescriptor::CPPTYPE_MESSAGE:
+        {
+            Message* submessage = reflection->MutableMessage(message, field);
+            PROTO_DO(ParseMessage(submessage, field->message_type(), row, text_name + "."));
+        }
+        break;
+    default:
+        proto_error("ParseSingle field unknow type, field=%s\n", field->full_name().c_str());
+        return false;
+    }
+    return true;
+}
+
+bool ExcelParser::ParseRepeated(Message* message, const FieldDescriptor* field, int row, string base)
+{
+    return true;
+}
+
+bool ExcelParser::ParseTable(Message* message, const FieldDescriptor* field, int row, string base)
+{
     return true;
 }
