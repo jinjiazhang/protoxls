@@ -3,7 +3,7 @@ syntax = "proto3";
 import "option.proto";
 
 message LevelConfig {
-	option (excel) = "主角配置表.xls";
+	option (excel) = "主角配置表.xlsx";
 	option (sheet) = "主角升级";
 	option (key) = "level";
 	option (output) = "level_config.lua";

@@ -17,7 +17,9 @@ ProtoExcel::~ProtoExcel()
 bool ProtoExcel::ParseScheme(const char* file)
 {
     const FileDescriptor* parsed_file = importer_.Import(file);
-    if (parsed_file == NULL) {
+    if (parsed_file == NULL)
+    {
+        proto_error("ParseScheme import proto fail, file=%s\n", file);
         return false;
     }
 
@@ -34,8 +36,9 @@ bool ProtoExcel::ParseConfig(const Descriptor* descriptor)
     const MessageOptions& option = descriptor->options();
     vector<string> excel_names = Split(utf82ansi(option.GetExtension(excel)), ";");
     vector<string> sheet_names = Split(utf82ansi(option.GetExtension(sheet)), ";");
-    if (excel_names.size() > 1 && sheet_names.size() > 1 && excel_names.size() != sheet_names.size()) {
-        proto_error("ParseConfig excel count not equal to sheet count, message name=%s", descriptor->name().c_str());
+    if (excel_names.size() > 1 && sheet_names.size() > 1 && excel_names.size() != sheet_names.size())
+    {
+        proto_error("ParseConfig excel count not equal to sheet count, message name=%s\n", descriptor->name().c_str());
         return false;
     }
 
@@ -45,6 +48,7 @@ bool ProtoExcel::ParseConfig(const Descriptor* descriptor)
         string back_name = excel_names.back();
         excel_names.push_back(back_name);
     }
+
     for (int i = sheet_names.size(); i < name_size; i++)
     {
         string back_name = sheet_names.back();

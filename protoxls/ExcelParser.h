@@ -22,7 +22,7 @@ public:
     bool ParserData(const Descriptor* descriptor, vector<Message*>& datas);
 
 private:
-    bool ParserColumns(void* work_sheet);
+    bool ReadColumns();
 
 private:
     Book* book_;
