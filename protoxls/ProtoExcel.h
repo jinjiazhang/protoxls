@@ -1,9 +1,6 @@
 #ifndef _JINJIAZHANG_PROTOEXCEL_H_
 #define _JINJIAZHANG_PROTOEXCEL_H_
 
-#include "BasicExcel.hpp"
-using namespace YExcel;
-
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/dynamic_message.h>
 #include <google/protobuf/compiler/importer.h>
@@ -15,6 +12,7 @@ using namespace google::protobuf::compiler;
 using namespace google::protobuf::internal;
 
 #include "logger.h"
+#include "strconv.h"
 #include "option.pb.h"
 
 class ProtoErrorCollector : public MultiFileErrorCollector
@@ -37,6 +35,7 @@ public:
 
 private:
     bool ParseConfig(const Descriptor* descriptor);
+    bool ParseExcel(const Descriptor* descriptor, vector<const Message*>& datas, string excel_name, string sheet_name);
 
 private:
     ProtoErrorCollector errorCollector_;
