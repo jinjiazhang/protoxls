@@ -6,6 +6,11 @@ ExcelParser::ExcelParser(MessageFactory* factory)
     book_ = NULL;
     sheet_ = NULL;
     factory_ = factory;
+    field_format_ = "%s%s";
+    array_format_ = "%s[%d]";
+    key_format_ = "%skey";
+    value_format_ = "%svalue";
+    index_start_ = 1;
 }
 
 ExcelParser::~ExcelParser()
@@ -70,7 +75,7 @@ bool ExcelParser::ParseData(const Descriptor* descriptor, vector<Message*>& data
     PROTO_ASSERT(sheet_ != NULL);
     PROTO_DO(ReadColumns());
 
-    for (int row = 1; row < sheet_->lastRow(); row++)
+    for (int row = sheet_->firstRow() + 1; row < sheet_->lastRow(); row++)
     {
         Message* message = factory_->GetPrototype(descriptor)->New();
         PROTO_DO(ParseMessage(message, descriptor, row, ""));
@@ -82,15 +87,14 @@ bool ExcelParser::ParseData(const Descriptor* descriptor, vector<Message*>& data
 bool ExcelParser::ReadColumns()
 {
     PROTO_ASSERT(sheet_ != NULL);
-    PROTO_ASSERT(sheet_->firstRow() == 0);
-    PROTO_ASSERT(sheet_->firstCol() == 0);
-    PROTO_ASSERT(sheet_->lastRow() > 0);
-    PROTO_ASSERT(sheet_->lastCol() > 0);
+    PROTO_ASSERT(sheet_->firstRow() < sheet_->lastRow());
+    PROTO_ASSERT(sheet_->firstCol() < sheet_->lastCol());
     
-    for (int col = 0; col < sheet_->lastCol(); col++)
+    int row = sheet_->firstRow();
+    for (int col = sheet_->firstCol(); col < sheet_->lastCol(); col++)
     {
-        PROTO_ASSERT(sheet_->cellType(0, col) == CELLTYPE_STRING);
-        const char* text = sheet_->readStr(0, col);
+        PROTO_ASSERT(sheet_->cellType(row, col) == CELLTYPE_STRING);
+        const char* text = sheet_->readStr(row, col);
         columns_.insert(std::make_pair(ansi2utf8(text), col));
     }
     return true;
@@ -99,11 +103,47 @@ bool ExcelParser::ReadColumns()
 string ExcelParser::GetFiledText(const FieldDescriptor* field, string base)
 {
     string text_name = field->options().GetExtension(text);
-    if (text_name.empty()) 
-    {
+    if (text_name.empty()) {
         text_name = field->name();
     }
-    return base + text_name;
+    if (base.empty()) {
+        return text_name;
+    }
+
+    char full_name[256];
+    sprintf(full_name, field_format_.c_str(), base.c_str(), text_name.c_str());
+    return string(full_name);
+}
+
+string ExcelParser::GetElementText(string text_name, int index)
+{
+    char full_name[256];
+    sprintf(full_name, array_format_.c_str(), text_name.c_str(), index);
+    return string(full_name);
+}
+
+bool ExcelParser::HasElement(const FieldDescriptor* field, int index, int row, string base)
+{
+    string text_name = GetFiledText(field, base);
+    string element_text = GetElementText(text_name, index);
+    if (field->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE)
+    {
+        // todo check fileds
+        return false;
+    }
+
+    if (columns_.find(element_text) == columns_.end())
+    {
+        return false;
+    }
+
+    int col = columns_[element_text];
+    CellType cell_type = sheet_->cellType(row, col);
+    if (cell_type == CELLTYPE_EMPTY || cell_type == CELLTYPE_BLANK)
+    {
+        return false;
+    }
+    return true;
 }
 
 bool ExcelParser::ParseMessage(Message* message, const Descriptor* descriptor, int row, string base)
@@ -190,7 +230,59 @@ bool ExcelParser::ParseRepeated(Message* message, const FieldDescriptor* field, 
     string text_name = GetFiledText(field, base);
     if (columns_.find(text_name) != columns_.end())
     {
+        // parse number array split by ";"
         return ParseArray(message, field, row, base);
+    }
+
+    if (field->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE)
+    {
+        int index = index_start_;
+        while (HasElement(field, index, row, base))
+        {
+            string element_base = GetElementText(text_name, index);
+            const Reflection* reflection = message->GetReflection();
+            Message* submessage = reflection->MutableMessage(message, field);
+            PROTO_DO(ParseMessage(submessage, field->message_type(), row, element_base));
+            index += 1;
+        }
+        return true;
+    }
+
+    int index = index_start_;
+    while (HasElement(field, index, row, base))
+    {
+        string element_text = GetElementText(text_name, index);
+        int col = columns_[element_text];
+        CellType cell_type = sheet_->cellType(row, col);
+
+        switch (field->cpp_type())
+        {
+        case FieldDescriptor::CPPTYPE_DOUBLE:
+        case FieldDescriptor::CPPTYPE_FLOAT:
+        case FieldDescriptor::CPPTYPE_INT32:
+        case FieldDescriptor::CPPTYPE_UINT32:
+        case FieldDescriptor::CPPTYPE_INT64:
+        case FieldDescriptor::CPPTYPE_UINT64:
+            PROTO_ASSERT(cell_type == CELLTYPE_NUMBER);
+            ParseHelper::AddNumberField(message, field, sheet_->readNum(row, col));
+            break;
+        case FieldDescriptor::CPPTYPE_BOOL:
+            PROTO_ASSERT(cell_type == CELLTYPE_BOOLEAN);
+            ParseHelper::AddBoolField(message, field, sheet_->readBool(row, col));
+            break;
+        case FieldDescriptor::CPPTYPE_ENUM:
+            PROTO_ASSERT(cell_type == CELLTYPE_STRING);
+            ParseHelper::AddEnumField(message, field, sheet_->readStr(row, col));
+            break;
+        case FieldDescriptor::CPPTYPE_STRING:
+            PROTO_ASSERT(cell_type == CELLTYPE_STRING);
+            ParseHelper::AddStringField(message, field, sheet_->readStr(row, col));
+            break;
+        default:
+            proto_error("ParseRepeated field unknow type, field=%s\n", field->full_name().c_str());
+            return false;
+        }
+        index += 1;
     }
     return true;
 }

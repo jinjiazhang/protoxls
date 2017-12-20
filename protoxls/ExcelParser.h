@@ -34,12 +34,19 @@ private:
 
 private:
     string GetFiledText(const FieldDescriptor* field, string base);
+    string GetElementText(string text_name, int index);
+    bool HasElement(const FieldDescriptor* field, int index, int row, string base);
 
 private:
     Book* book_;
     Sheet* sheet_;
     string excel_name_;
     string sheet_name_;
+    string field_format_;
+    string array_format_;
+    string key_format_;
+    string value_format_;
+    int index_start_;
     std::map<string, int> columns_;
     MessageFactory* factory_;
 };
