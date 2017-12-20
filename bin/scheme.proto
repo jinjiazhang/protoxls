@@ -14,17 +14,18 @@ message RoleScheme {
 		int32 defense = 2 [(text) = "防御"];
 	}
 
-	enum GripType {
-		GRIPTYPE_UNKNOW = 0 [(cname) = "未知"];
-		GRIPTYPE_PENHOLD = 1 [(cname) = "直拍"];
-		GRIPTYPE_SHAKEHAND = 2 [(cname) = "横拍"];
+	enum Vocation {
+		VOCATION_UNKNOW = 0 [(cname) = "未知"];
+		VOCATION_WARRIOR = 1 [(cname) = "战士"];
+		VOCATION_MASTER = 2 [(cname) = "法师"];
+		VOCATION_SHAMAN = 3 [(cname) = "巫师"];
 	}
 	
 	int32 roleId = 1 [(text) = "角色ID"];
 	string name = 2 [(text) = "名字"];
 	int32 level = 3 [(text) = "等级"];
-	repeated int32 bwh = 4 [(text) = "三围"];
-	GripType gripType = 5 [(text) = "拍形"];
+	Vocation vocation = 4 [(text) = "职业"];
+	repeated int32 coords = 5 [(text) = "坐标"];
 	PropScheme props = 6 [(text) = "属性"];
 
 }
