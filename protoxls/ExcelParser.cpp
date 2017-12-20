@@ -225,15 +225,9 @@ bool ExcelParser::ParseSingle(Message* message, const FieldDescriptor* field, in
     return true;
 }
 
-bool ExcelParser::ParseRepeated(Message* message, const FieldDescriptor* field, int row, string base)
+bool ExcelParser::ParseMultiple(Message* message, const FieldDescriptor* field, int row, string base)
 {
     string text_name = GetFiledText(field, base);
-    if (columns_.find(text_name) != columns_.end())
-    {
-        // parse number array split by ";"
-        return ParseArray(message, field, row, base);
-    }
-
     if (field->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE)
     {
         int index = index_start_;
@@ -319,6 +313,21 @@ bool ExcelParser::ParseArray(Message* message, const FieldDescriptor* field, int
         return false;
     }
     return true;
+}
+
+bool ExcelParser::ParseRepeated(Message* message, const FieldDescriptor* field, int row, string base)
+{
+    string text_name = GetFiledText(field, base);
+    if (columns_.find(text_name) != columns_.end())
+    {
+        // parse number array split by ";"
+        return ParseArray(message, field, row, base);
+    }
+    else
+    {
+        // parse multiple columns by index
+        return ParseMultiple(message, field, row, base);
+    }   
 }
 
 bool ExcelParser::ParseTable(Message* message, const FieldDescriptor* field, int row, string base)

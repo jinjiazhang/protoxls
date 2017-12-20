@@ -28,6 +28,7 @@ private:
     bool ParseMessage(Message* message, const Descriptor* descriptor, int row, string base);
     bool ParseField(Message* message, const FieldDescriptor* field, int row, string base);
     bool ParseSingle(Message* message, const FieldDescriptor* field, int row, string base);
+    bool ParseMultiple(Message* message, const FieldDescriptor* field, int row, string base);
     bool ParseRepeated(Message* message, const FieldDescriptor* field, int row, string base);
     bool ParseArray(Message* message, const FieldDescriptor* field, int row, string base);
     bool ParseTable(Message* message, const FieldDescriptor* field, int row, string base);
