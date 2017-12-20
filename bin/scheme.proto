@@ -2,14 +2,29 @@ syntax = "proto3";
 
 import "option.proto";
 
-message LevelConfig {
-	option (excel) = "主角配置表.xlsx";
-	option (sheet) = "主角升级";
-	option (key) = "level";
-	option (output) = "level_config.lua";
-	option (prefix) = "_G['LevelConfigTable'] = ";
+message RoleScheme {
+	option (excel) = "角色数据表.xlsx";
+	option (sheet) = "角色数据";
+	option (key) = "roleId";
+	option (output) = "role_data.lua";
+	option (prefix) = "_G['RoleDataTable'] = ";
+
+	message PropScheme {
+		int32 attack = 1 [(text) = "攻击"];
+		int32 defense = 2 [(text) = "防御"];
+	}
+
+	enum GripType {
+		GRIPTYPE_UNKNOW = 0 [(cname) = "未知"];
+		GRIPTYPE_PENHOLD = 1 [(cname) = "直拍"];
+		GRIPTYPE_SHAKEHAND = 2 [(cname) = "横拍"];
+	}
 	
-	int32 level = 1 [(text) = "等级"];
-	int32 exp = 2 [(text) = "经验"];
-	int32 maxVigor = 3 [(text) = "体力上限"];
+	int32 roleId = 1 [(text) = "角色ID"];
+	string name = 2 [(text) = "名字"];
+	int32 level = 3 [(text) = "等级"];
+	repeated int32 bwh = 4 [(text) = "三围"];
+	GripType gripType = 5 [(text) = "拍形"];
+	PropScheme props = 6 [(text) = "属性"];
+
 }

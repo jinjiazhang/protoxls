@@ -78,6 +78,10 @@ static const int kTextFieldNumber = 1001;
 extern ::google::protobuf::internal::ExtensionIdentifier< ::google::protobuf::FieldOptions,
     ::google::protobuf::internal::StringTypeTraits, 9, false >
   text;
+static const int kCnameFieldNumber = 1001;
+extern ::google::protobuf::internal::ExtensionIdentifier< ::google::protobuf::EnumValueOptions,
+    ::google::protobuf::internal::StringTypeTraits, 9, false >
+  cname;
 
 // ===================================================================
 

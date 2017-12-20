@@ -89,6 +89,9 @@ void TableStruct::InitDefaultsImpl() {
   ::google::protobuf::internal::ExtensionSet::RegisterExtension(
     ::google::protobuf::FieldOptions::internal_default_instance(),
     1001, 9, false, false);
+  ::google::protobuf::internal::ExtensionSet::RegisterExtension(
+    ::google::protobuf::EnumValueOptions::internal_default_instance(),
+    1001, 9, false, false);
 }
 
 void InitDefaults() {
@@ -108,10 +111,12 @@ void AddDescriptorsImpl() {
       "\001(\t:0\n\006prefix\022\037.google.protobuf.MessageO"
       "ptions\030\355\007 \001(\t:0\n\006suffix\022\037.google.protobu"
       "f.MessageOptions\030\356\007 \001(\t:,\n\004text\022\035.google"
-      ".protobuf.FieldOptions\030\351\007 \001(\tb\006proto3"
+      ".protobuf.FieldOptions\030\351\007 \001(\t:1\n\005cname\022!"
+      ".google.protobuf.EnumValueOptions\030\351\007 \001(\t"
+      "b\006proto3"
   };
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 397);
+      descriptor, 448);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "option.proto", &protobuf_RegisterTypes);
   ::google::protobuf::protobuf_google_2fprotobuf_2fdescriptor_2eproto::AddDescriptors();
@@ -159,6 +164,10 @@ const ::std::string text_default("");
 ::google::protobuf::internal::ExtensionIdentifier< ::google::protobuf::FieldOptions,
     ::google::protobuf::internal::StringTypeTraits, 9, false >
   text(kTextFieldNumber, text_default);
+const ::std::string cname_default("");
+::google::protobuf::internal::ExtensionIdentifier< ::google::protobuf::EnumValueOptions,
+    ::google::protobuf::internal::StringTypeTraits, 9, false >
+  cname(kCnameFieldNumber, cname_default);
 
 // @@protoc_insertion_point(namespace_scope)
 

@@ -29,6 +29,7 @@ private:
     bool ParseField(Message* message, const FieldDescriptor* field, int row, string base);
     bool ParseSingle(Message* message, const FieldDescriptor* field, int row, string base);
     bool ParseRepeated(Message* message, const FieldDescriptor* field, int row, string base);
+    bool ParseArray(Message* message, const FieldDescriptor* field, int row, string base);
     bool ParseTable(Message* message, const FieldDescriptor* field, int row, string base);
 
 private:

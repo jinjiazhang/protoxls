@@ -176,6 +176,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ParseHelper.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ProtoExcel.cpp"
 				>
 			</File>
@@ -191,6 +195,10 @@
 			</File>
 			<File
 				RelativePath=".\logger.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ParseHelper.h"
 				>
 			</File>
 			<File
