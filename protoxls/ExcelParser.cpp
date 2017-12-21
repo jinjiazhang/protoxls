@@ -1,6 +1,13 @@
 #include "ExcelParser.h"
 #include "ParseHelper.h"
 
+#define EXPECT_CELLTYPE(row, col, cell_type, text_name) \
+    if (sheet_->cellType(row, col) != (cell_type)) { \
+        proto_error("ParseFiled cell type error, expect=%s, row=%d, col=%d, text=%s\n", \
+            #cell_type, row, col, text_name.c_str()); \
+        return false; \
+    }
+
 ExcelParser::ExcelParser(MessageFactory* factory)
 {
     book_ = NULL;
@@ -247,19 +254,19 @@ bool ExcelParser::ParseSingle(Message* message, const FieldDescriptor* field, in
     case FieldDescriptor::CPPTYPE_UINT32:
     case FieldDescriptor::CPPTYPE_INT64:
     case FieldDescriptor::CPPTYPE_UINT64:
-        PROTO_ASSERT(cell_type == CELLTYPE_NUMBER);
+        EXPECT_CELLTYPE(row, col, CELLTYPE_NUMBER, text_name);
         ParseHelper::SetNumberField(message, field, sheet_->readNum(row, col));
         break;
     case FieldDescriptor::CPPTYPE_BOOL:
-        PROTO_ASSERT(cell_type == CELLTYPE_BOOLEAN);
+        EXPECT_CELLTYPE(row, col, CELLTYPE_BOOLEAN, text_name);
         ParseHelper::SetBoolField(message, field, sheet_->readBool(row, col));
         break;
     case FieldDescriptor::CPPTYPE_ENUM:
-        PROTO_ASSERT(cell_type == CELLTYPE_STRING);
+        EXPECT_CELLTYPE(row, col, CELLTYPE_STRING, text_name);
         ParseHelper::SetEnumField(message, field, sheet_->readStr(row, col));
         break;
     case FieldDescriptor::CPPTYPE_STRING:
-        PROTO_ASSERT(cell_type == CELLTYPE_STRING);
+        EXPECT_CELLTYPE(row, col, CELLTYPE_STRING, text_name);
         ParseHelper::SetStringField(message, field, sheet_->readStr(row, col));
         break;
     default:
@@ -301,25 +308,26 @@ bool ExcelParser::ParseMultiple(Message* message, const FieldDescriptor* field, 
         case FieldDescriptor::CPPTYPE_UINT32:
         case FieldDescriptor::CPPTYPE_INT64:
         case FieldDescriptor::CPPTYPE_UINT64:
-            PROTO_ASSERT(cell_type == CELLTYPE_NUMBER);
+            EXPECT_CELLTYPE(row, col, CELLTYPE_NUMBER, element_text);
             ParseHelper::AddNumberField(message, field, sheet_->readNum(row, col));
             break;
         case FieldDescriptor::CPPTYPE_BOOL:
-            PROTO_ASSERT(cell_type == CELLTYPE_BOOLEAN);
+            EXPECT_CELLTYPE(row, col, CELLTYPE_BOOLEAN, element_text);
             ParseHelper::AddBoolField(message, field, sheet_->readBool(row, col));
             break;
         case FieldDescriptor::CPPTYPE_ENUM:
-            PROTO_ASSERT(cell_type == CELLTYPE_STRING);
+            EXPECT_CELLTYPE(row, col, CELLTYPE_STRING, element_text);
             ParseHelper::AddEnumField(message, field, sheet_->readStr(row, col));
             break;
         case FieldDescriptor::CPPTYPE_STRING:
-            PROTO_ASSERT(cell_type == CELLTYPE_STRING);
+            EXPECT_CELLTYPE(row, col, CELLTYPE_STRING, element_text);
             ParseHelper::AddStringField(message, field, sheet_->readStr(row, col));
             break;
         default:
-            proto_error("ParseRepeated field unknow type, field=%s\n", field->full_name().c_str());
+            proto_error("ParseMultiple field unknow type, field=%s\n", field->full_name().c_str());
             return false;
         }
+
         index += 1;
     }
     return true;
@@ -350,7 +358,7 @@ bool ExcelParser::ParseArray(Message* message, const FieldDescriptor* field, int
     case FieldDescriptor::CPPTYPE_UINT32:
     case FieldDescriptor::CPPTYPE_INT64:
     case FieldDescriptor::CPPTYPE_UINT64:
-        PROTO_ASSERT(cell_type == CELLTYPE_STRING);
+        EXPECT_CELLTYPE(row, col, CELLTYPE_STRING, text_name);
         ParseHelper::FillNumberArray(message, field, sheet_->readStr(row, col));
         break;
     default:
@@ -372,5 +380,5 @@ bool ExcelParser::ParseRepeated(Message* message, const FieldDescriptor* field, 
     {
         // parse multiple columns by index
         return ParseMultiple(message, field, row, base);
-    }   
+    }
 }

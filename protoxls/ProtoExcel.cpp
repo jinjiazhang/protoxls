@@ -70,14 +70,12 @@ bool ProtoExcel::ParseConfig(const Descriptor* descriptor)
     {
         ExcelParser parser(&factory_);
         if (!parser.LoadSheet(excel_names[i], sheet_names[i])) {
-            proto_error("ParseConfig load sheet fail, scheme=%s, excel=%s, sheet=%s\n", 
-                descriptor->full_name().c_str(), excel_names[i].c_str(), sheet_names[i].c_str());
+            proto_error("ParseConfig load sheet fail, excel=%s, sheet=%s\n", excel_names[i].c_str(), sheet_names[i].c_str());
             return false;
         }
 
         if (!parser.ParseData(descriptor, datas)) {
-            proto_error("ParseConfig parse data fail, scheme=%s, excel=%s, sheet=%s\n", 
-                descriptor->full_name().c_str(), excel_names[i].c_str(), sheet_names[i].c_str());
+            proto_error("ParseConfig parse data fail, excel=%s, sheet=%s\n", excel_names[i].c_str(), sheet_names[i].c_str());
             return false;
         }
     }
