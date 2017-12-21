@@ -128,7 +128,16 @@ bool ExcelParser::HasElement(const FieldDescriptor* field, int index, int row, s
     string element_text = GetElementText(text_name, index);
     if (field->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE)
     {
-        // todo check fileds
+        const Descriptor* descriptor = field->message_type();
+        for (int i = 0; i < descriptor->field_count(); i++)
+        {
+            const FieldDescriptor* subfield = descriptor->field(i);
+            string text_name = GetFiledText(subfield, element_text);
+            if (columns_.find(text_name) != columns_.end())
+            {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -159,7 +168,7 @@ bool ExcelParser::ParseMessage(Message* message, const Descriptor* descriptor, i
 bool ExcelParser::ParseField(Message* message, const FieldDescriptor* field, int row, string base)
 {
     if (field->is_map())
-        return ParseTable(message, field, row, base);
+        return ParseMultiple(message, field, row, base);
     else if (field->is_required())
         return ParseSingle(message, field, row, base);
     else if (field->is_optional())
@@ -235,7 +244,7 @@ bool ExcelParser::ParseMultiple(Message* message, const FieldDescriptor* field, 
         {
             string element_base = GetElementText(text_name, index);
             const Reflection* reflection = message->GetReflection();
-            Message* submessage = reflection->MutableMessage(message, field);
+            Message* submessage = reflection->AddMessage(message, field);
             PROTO_DO(ParseMessage(submessage, field->message_type(), row, element_base));
             index += 1;
         }
@@ -328,9 +337,4 @@ bool ExcelParser::ParseRepeated(Message* message, const FieldDescriptor* field, 
         // parse multiple columns by index
         return ParseMultiple(message, field, row, base);
     }   
-}
-
-bool ExcelParser::ParseTable(Message* message, const FieldDescriptor* field, int row, string base)
-{
-    return true;
 }

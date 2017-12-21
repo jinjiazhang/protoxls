@@ -31,7 +31,6 @@ private:
     bool ParseMultiple(Message* message, const FieldDescriptor* field, int row, string base);
     bool ParseRepeated(Message* message, const FieldDescriptor* field, int row, string base);
     bool ParseArray(Message* message, const FieldDescriptor* field, int row, string base);
-    bool ParseTable(Message* message, const FieldDescriptor* field, int row, string base);
 
 private:
     string GetFiledText(const FieldDescriptor* field, string base);
