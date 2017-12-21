@@ -82,7 +82,7 @@ bool ProtoExcel::ExportResult()
             const FileDescriptor* file_desc = descriptor->file();
             const DescriptorPool* desc_pool = file_desc->pool();
             util::MessageToJsonString(*message, &output);
-            proto_info("[%d]: %s\n", i, output.c_str());
+            proto_info("[%d]: %s\n", i, utf82ansi(output).c_str());
         }
     }
     return true;

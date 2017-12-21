@@ -95,14 +95,15 @@ bool ExcelParser::ReadColumns()
     {
         PROTO_ASSERT(sheet_->cellType(row, col) == CELLTYPE_STRING);
         const char* text = sheet_->readStr(row, col);
-        columns_.insert(std::make_pair(ansi2utf8(text), col));
+        columns_.insert(std::make_pair(text, col));
     }
     return true;
 }
 
 string ExcelParser::GetFiledText(const FieldDescriptor* field, string base)
 {
-    string text_name = field->options().GetExtension(text);
+    const FieldOptions& option = field->options();
+    string text_name = utf82ansi(option.GetExtension(text));
     if (text_name.empty()) {
         text_name = field->name();
     }
@@ -122,23 +123,52 @@ string ExcelParser::GetElementText(string text_name, int index)
     return string(full_name);
 }
 
+bool ExcelParser::HasFiled(const FieldDescriptor* field, int row, string base)
+{
+    string text_name = GetFiledText(field, base);
+    if (columns_.find(text_name) == columns_.end()) {
+        return false;
+    }
+
+    int col = columns_[text_name];
+    CellType cell_type = sheet_->cellType(row, col);
+    if (cell_type == CELLTYPE_EMPTY || cell_type == CELLTYPE_BLANK) {
+        return false;
+    }
+
+    return true;
+}
+
+bool ExcelParser::HasMessage(const FieldDescriptor* field, int row, string base)
+{
+    string text_name = GetFiledText(field, base);
+    const Descriptor* descriptor = field->message_type();
+    for (int i = 0; i < descriptor->field_count(); i++)
+    {
+        const FieldDescriptor* subfield = descriptor->field(i);
+        if (subfield->is_repeated())
+        {
+            if (HasElement(subfield, index_start_, row, base)) {
+                return true;
+            }
+        }
+        else
+        {
+            if (HasFiled(subfield, row, base)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 bool ExcelParser::HasElement(const FieldDescriptor* field, int index, int row, string base)
 {
     string text_name = GetFiledText(field, base);
     string element_text = GetElementText(text_name, index);
     if (field->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE)
     {
-        const Descriptor* descriptor = field->message_type();
-        for (int i = 0; i < descriptor->field_count(); i++)
-        {
-            const FieldDescriptor* subfield = descriptor->field(i);
-            string text_name = GetFiledText(subfield, element_text);
-            if (columns_.find(text_name) != columns_.end())
-            {
-                return true;
-            }
-        }
-        return false;
+        return HasMessage(field, row, element_text);
     }
 
     if (columns_.find(element_text) == columns_.end())

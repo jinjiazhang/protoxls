@@ -35,6 +35,8 @@ private:
 private:
     string GetFiledText(const FieldDescriptor* field, string base);
     string GetElementText(string text_name, int index);
+    bool HasFiled(const FieldDescriptor* field, int row, string base);
+    bool HasMessage(const FieldDescriptor* field, int row, string base);
     bool HasElement(const FieldDescriptor* field, int index, int row, string base);
 
 private:
