@@ -26,7 +26,11 @@ bool ProtoExcel::ParseScheme(const char* file)
     for (int i = 0; i < parsed_file->message_type_count(); i++)
     {
         const Descriptor* descriptor = parsed_file->message_type(i);
-        PROTO_DO(ParseConfig(descriptor));
+        if (!ParseConfig(descriptor))
+        {
+            proto_error("ParseScheme parse config fail, scheme=%s\n", descriptor->full_name().c_str());
+            continue;
+        }
     }
     return true;
 }
@@ -36,9 +40,15 @@ bool ProtoExcel::ParseConfig(const Descriptor* descriptor)
     const MessageOptions& option = descriptor->options();
     vector<string> excel_names = Split(utf82ansi(option.GetExtension(excel)), ";");
     vector<string> sheet_names = Split(utf82ansi(option.GetExtension(sheet)), ";");
+    if (excel_names.size() == 0 || sheet_names.size() == 0)
+    {
+        proto_error("ParseConfig excel/sheet option miss, scheme=%s\n", descriptor->full_name().c_str());
+        return false;
+    }
+
     if (excel_names.size() > 1 && sheet_names.size() > 1 && excel_names.size() != sheet_names.size())
     {
-        proto_error("ParseConfig excel count not equal to sheet count, message name=%s\n", descriptor->name().c_str());
+        proto_error("ParseConfig excel/sheet size unmatch, scheme=%s\n", descriptor->full_name().c_str());
         return false;
     }
 
@@ -59,8 +69,17 @@ bool ProtoExcel::ParseConfig(const Descriptor* descriptor)
     for (int i = 0; i < name_size; i++)
     {
         ExcelParser parser(&factory_);
-        PROTO_DO(parser.LoadSheet(excel_names[i], sheet_names[i]));
-        PROTO_DO(parser.ParseData(descriptor, datas));
+        if (!parser.LoadSheet(excel_names[i], sheet_names[i])) {
+            proto_error("ParseConfig load sheet fail, scheme=%s, excel=%s, sheet=%s\n", 
+                descriptor->full_name().c_str(), excel_names[i].c_str(), sheet_names[i].c_str());
+            return false;
+        }
+
+        if (!parser.ParseData(descriptor, datas)) {
+            proto_error("ParseConfig parse data fail, scheme=%s, excel=%s, sheet=%s\n", 
+                descriptor->full_name().c_str(), excel_names[i].c_str(), sheet_names[i].c_str());
+            return false;
+        }
     }
 
     parseds_.insert(std::make_pair(descriptor, datas));

@@ -37,11 +37,9 @@ void ParseHelper::SetBoolField(Message* message, const FieldDescriptor* field, b
 
 void ParseHelper::SetEnumField(Message* message, const FieldDescriptor* field, const char* text)
 {
-    int value = 0;
-    if (!GetEnumValue(field, text, &value)) 
-    {
-        proto_error("GetEnumValue enum not found, field=%s, text=%s\n", field->full_name().c_str(), text);
-        return;
+    int value = field->default_value_enum()->number();
+    if (!GetEnumValue(field, text, &value)) {
+        proto_error("SetEnumField enum not found, field=%s, text=%s\n", field->full_name().c_str(), text);
     }
     const Reflection* reflection = message->GetReflection();
     reflection->SetEnumValue(message, field, value);
@@ -90,11 +88,9 @@ void ParseHelper::AddBoolField(Message* message, const FieldDescriptor* field, b
 
 void ParseHelper::AddEnumField(Message* message, const FieldDescriptor* field, const char* text)
 {
-    int value = 0;
-    if (!GetEnumValue(field, text, &value)) 
-    {
-        proto_error("GetEnumValue enum not found, field=%s, text=%s\n", field->full_name().c_str(), text);
-        return;
+    int value = field->default_value_enum()->number();
+    if (!GetEnumValue(field, text, &value)) {
+        proto_error("AddEnumField enum not found, field=%s, text=%s\n", field->full_name().c_str(), text);
     }
     const Reflection* reflection = message->GetReflection();
     reflection->AddEnumValue(message, field, value);

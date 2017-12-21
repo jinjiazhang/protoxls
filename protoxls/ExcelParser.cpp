@@ -36,15 +36,16 @@ bool ExcelParser::LoadSheet(string excel_name, string sheet_name)
     }
     else
     {
-        proto_error("only xls file supported, excel=%s\n", excel_name.c_str());
+        proto_error("LoadSheet only xls/xlsx file supported, excel=%s\n", excel_name.c_str());
         return false;
     }
 
     book_->setKey("protoxls", "windows-27262a0805c8e4046cbd6661ael7mahf");
     if (!book_->load(excel_name.c_str()))
     {
-        proto_error("load excel fail, excel=%s, error=%s\n", excel_name.c_str(), book_->errorMessage());
+        proto_error("LoadSheet load excel fail, excel=%s, error=%s\n", excel_name.c_str(), book_->errorMessage());
         book_->release();
+        book_ = NULL;
         return false;
     }
 
@@ -60,8 +61,9 @@ bool ExcelParser::LoadSheet(string excel_name, string sheet_name)
 
     if (sheet_ == NULL)
     {
-        proto_error("sheet not found, excel=%s, sheet=%s\n", excel_name.c_str(), sheet_name.c_str());
+        proto_error("LoadSheet sheet not found, excel=%s, sheet=%s\n", excel_name.c_str(), sheet_name.c_str());
         book_->release();
+        book_ = NULL;
         return false;
     }
 
@@ -73,29 +75,34 @@ bool ExcelParser::LoadSheet(string excel_name, string sheet_name)
 bool ExcelParser::ParseData(const Descriptor* descriptor, vector<Message*>& datas)
 {
     PROTO_ASSERT(sheet_ != NULL);
-    PROTO_DO(ReadColumns());
+    if (sheet_->firstRow() >= sheet_->lastRow()) {
+        proto_error("ParseData sheet row empyt, first=%d, last=%d\n", sheet_->firstRow(), sheet_->lastRow());
+        return false;
+    }
+
+    if (sheet_->firstCol() >= sheet_->lastCol()) {
+        proto_error("ParseData sheet col empyt, first=%d, last=%d\n", sheet_->firstRow(), sheet_->lastRow());
+        return false;
+    }
+
+    int row = sheet_->firstRow();
+    for (int col = sheet_->firstCol(); col < sheet_->lastCol(); col++)
+    {
+        if (sheet_->cellType(row, col) == CELLTYPE_STRING)
+        {
+            const char* text = sheet_->readStr(row, col);
+            columns_.insert(std::make_pair(text, col));
+        }
+    }
 
     for (int row = sheet_->firstRow() + 1; row < sheet_->lastRow(); row++)
     {
         Message* message = factory_->GetPrototype(descriptor)->New();
-        PROTO_DO(ParseMessage(message, descriptor, row, ""));
+        if (!ParseMessage(message, descriptor, row, "")) {
+            proto_error("ParseData parse row fail, row=%d\n", row);
+            return false;
+        }
         datas.push_back(message);
-    }
-    return true;
-}
-
-bool ExcelParser::ReadColumns()
-{
-    PROTO_ASSERT(sheet_ != NULL);
-    PROTO_ASSERT(sheet_->firstRow() < sheet_->lastRow());
-    PROTO_ASSERT(sheet_->firstCol() < sheet_->lastCol());
-    
-    int row = sheet_->firstRow();
-    for (int col = sheet_->firstCol(); col < sheet_->lastCol(); col++)
-    {
-        PROTO_ASSERT(sheet_->cellType(row, col) == CELLTYPE_STRING);
-        const char* text = sheet_->readStr(row, col);
-        columns_.insert(std::make_pair(text, col));
     }
     return true;
 }
@@ -135,13 +142,11 @@ bool ExcelParser::HasFiled(const FieldDescriptor* field, int row, string base)
     if (cell_type == CELLTYPE_EMPTY || cell_type == CELLTYPE_BLANK) {
         return false;
     }
-
     return true;
 }
 
 bool ExcelParser::HasMessage(const FieldDescriptor* field, int row, string base)
 {
-    string text_name = GetFiledText(field, base);
     const Descriptor* descriptor = field->message_type();
     for (int i = 0; i < descriptor->field_count(); i++)
     {
@@ -166,20 +171,17 @@ bool ExcelParser::HasElement(const FieldDescriptor* field, int index, int row, s
 {
     string text_name = GetFiledText(field, base);
     string element_text = GetElementText(text_name, index);
-    if (field->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE)
-    {
+    if (field->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE) {
         return HasMessage(field, row, element_text);
     }
 
-    if (columns_.find(element_text) == columns_.end())
-    {
+    if (columns_.find(element_text) == columns_.end()) {
         return false;
     }
 
     int col = columns_[element_text];
     CellType cell_type = sheet_->cellType(row, col);
-    if (cell_type == CELLTYPE_EMPTY || cell_type == CELLTYPE_BLANK)
-    {
+    if (cell_type == CELLTYPE_EMPTY || cell_type == CELLTYPE_BLANK) {
         return false;
     }
     return true;
@@ -190,7 +192,10 @@ bool ExcelParser::ParseMessage(Message* message, const Descriptor* descriptor, i
     for (int i = 0; i < descriptor->field_count(); i++)
     {
         const FieldDescriptor* field = descriptor->field(i);
-        PROTO_DO(ParseField(message, field, row, base));
+        if (!ParseField(message, field, row, base)) {
+            proto_error("ParseMessage parse field fail, row=%d, field=%s\n", row, field->full_name().c_str());
+            return false;
+        }
     }
     return true;
 }
@@ -230,7 +235,7 @@ bool ExcelParser::ParseSingle(Message* message, const FieldDescriptor* field, in
     CellType cell_type = sheet_->cellType(row, col);
     if (cell_type == CELLTYPE_EMPTY || cell_type == CELLTYPE_BLANK)
     {
-        proto_warn("ParseSingle cell empty, name=%s, row=%d\n", text_name.c_str(), row);
+        // proto_warn("ParseSingle cell empty, name=%s, row=%d\n", text_name.c_str(), row);
         return true;
     }
 
@@ -333,7 +338,7 @@ bool ExcelParser::ParseArray(Message* message, const FieldDescriptor* field, int
     CellType cell_type = sheet_->cellType(row, col);
     if (cell_type == CELLTYPE_EMPTY || cell_type == CELLTYPE_BLANK)
     {
-        proto_warn("ParseSingle cell empty, name=%s, row=%d\n", text_name.c_str(), row);
+        // proto_warn("ParseArray cell empty, name=%s, row=%d\n", text_name.c_str(), row);
         return true;
     }
 
@@ -345,7 +350,8 @@ bool ExcelParser::ParseArray(Message* message, const FieldDescriptor* field, int
     case FieldDescriptor::CPPTYPE_UINT32:
     case FieldDescriptor::CPPTYPE_INT64:
     case FieldDescriptor::CPPTYPE_UINT64:
-        PROTO_DO(ParseHelper::FillNumberArray(message, field, sheet_->readStr(row, col)));
+        PROTO_ASSERT(cell_type == CELLTYPE_STRING);
+        ParseHelper::FillNumberArray(message, field, sheet_->readStr(row, col));
         break;
     default:
         proto_error("ParseArray only number supported, field=%s\n", field->full_name().c_str());

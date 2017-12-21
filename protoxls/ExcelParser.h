@@ -24,7 +24,6 @@ public:
     bool ParseData(const Descriptor* descriptor, vector<Message*>& datas);
 
 private:
-    bool ReadColumns();
     bool ParseMessage(Message* message, const Descriptor* descriptor, int row, string base);
     bool ParseField(Message* message, const FieldDescriptor* field, int row, string base);
     bool ParseSingle(Message* message, const FieldDescriptor* field, int row, string base);

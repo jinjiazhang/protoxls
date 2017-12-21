@@ -31,13 +31,13 @@ int main(int argc, char* argv[])
 
     ProtoExcel runner;
     if (!runner.ParseScheme(argv[1])) {
-        std::cerr << "protoxls parse proto fail" << std::endl;
+        proto_error("protoxls parse scheme fail\n");
         return -1;
     }
 
     if (!runner.ExportResult()) {
-        std::cerr << "protoxls exprot result fail" << std::endl;
-        return -3;
+        proto_error("protoxls exprot result fail\n");
+        return -2;
     }
     return 0;
 }
