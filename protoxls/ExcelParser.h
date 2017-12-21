@@ -8,6 +8,7 @@
 #include "libxl.h"
 using namespace libxl;
 
+#include <ctime>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/dynamic_message.h>
 #include <google/protobuf/util/json_util.h>
@@ -37,6 +38,7 @@ private:
     bool HasFiled(const FieldDescriptor* field, int row, string base);
     bool HasMessage(const FieldDescriptor* field, int row, string base);
     bool HasElement(const FieldDescriptor* field, int index, int row, string base);
+    bool UnixTimestamp(int row, int col);
 
 private:
     Book* book_;

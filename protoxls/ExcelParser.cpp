@@ -194,6 +194,33 @@ bool ExcelParser::HasElement(const FieldDescriptor* field, int index, int row, s
     return true;
 }
 
+bool ExcelParser::UnixTimestamp(int row, int col)
+{
+    if (!sheet_->isDate(row, col)) {
+        return true;
+    }
+
+    struct tm stm;
+    memset(&stm, 0, sizeof(stm));
+    double value = sheet_->readNum(row, col);
+    bool result = book_->dateUnpack(value, &stm.tm_year, &stm.tm_mon, &stm.tm_mday, &stm.tm_hour, &stm.tm_min, &stm.tm_sec);
+    if (!result) {
+        proto_error("UnixTimestamp date unpack fail, value=%f, row=%d, col=%d\n", value, row, col);
+        return false;
+    }
+
+    stm.tm_year -= 1900;
+    stm.tm_mon -= 1;
+    time_t time = mktime(&stm) ;
+    if (time < 0) {
+        proto_error("UnixTimestamp make time fail, value=%f, row=%d, col=%d\n", value, row, col);
+        return false;
+    }
+
+    sheet_->writeNum(row, col, (double)time);
+    return true;
+}
+
 bool ExcelParser::ParseMessage(Message* message, const Descriptor* descriptor, int row, string base)
 {
     for (int i = 0; i < descriptor->field_count(); i++)
@@ -254,6 +281,7 @@ bool ExcelParser::ParseSingle(Message* message, const FieldDescriptor* field, in
     case FieldDescriptor::CPPTYPE_UINT32:
     case FieldDescriptor::CPPTYPE_INT64:
     case FieldDescriptor::CPPTYPE_UINT64:
+        PROTO_DO(UnixTimestamp(row, col));
         EXPECT_CELLTYPE(row, col, CELLTYPE_NUMBER, text_name);
         ParseHelper::SetNumberField(message, field, sheet_->readNum(row, col));
         break;
@@ -308,6 +336,7 @@ bool ExcelParser::ParseMultiple(Message* message, const FieldDescriptor* field, 
         case FieldDescriptor::CPPTYPE_UINT32:
         case FieldDescriptor::CPPTYPE_INT64:
         case FieldDescriptor::CPPTYPE_UINT64:
+            PROTO_DO(UnixTimestamp(row, col));
             EXPECT_CELLTYPE(row, col, CELLTYPE_NUMBER, element_text);
             ParseHelper::AddNumberField(message, field, sheet_->readNum(row, col));
             break;
