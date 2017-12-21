@@ -358,14 +358,20 @@ bool ExcelParser::ParseArray(Message* message, const FieldDescriptor* field, int
     case FieldDescriptor::CPPTYPE_UINT32:
     case FieldDescriptor::CPPTYPE_INT64:
     case FieldDescriptor::CPPTYPE_UINT64:
-        EXPECT_CELLTYPE(row, col, CELLTYPE_STRING, text_name);
-        ParseHelper::FillNumberArray(message, field, sheet_->readStr(row, col));
         break;
     default:
         proto_error("ParseArray only number supported, field=%s\n", field->full_name().c_str());
         return false;
     }
-    return true;
+
+    if (cell_type == CELLTYPE_NUMBER) 
+    {
+        ParseHelper::AddNumberField(message, field, sheet_->readNum(row, col));
+        return true;
+    }
+
+    EXPECT_CELLTYPE(row, col, CELLTYPE_STRING, text_name);
+    return ParseHelper::FillNumberArray(message, field, sheet_->readStr(row, col));
 }
 
 bool ExcelParser::ParseRepeated(Message* message, const FieldDescriptor* field, int row, string base)
