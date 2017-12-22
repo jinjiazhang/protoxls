@@ -1,6 +1,7 @@
 #include <algorithm>
 #include "ProtoExcel.h"
 #include "ExcelParser.h"
+#include "LuaExporter.h"
 
 ProtoExcel::ProtoExcel()
 :importer_(&sourceTree_, &errorCollector_)
@@ -89,18 +90,8 @@ bool ProtoExcel::ExportResult()
     SchemeParsed::iterator it = parseds_.begin();
     for (; it != parseds_.end(); ++it)
     {
-        proto_info("%s:\n", it->first->name().c_str());
-        vector<Message*>& datas = it->second;
-        for (int i = 0; i < datas.size(); i++)
-        {
-            string output;
-            Message* message = datas[i];
-            const Descriptor* descriptor = message->GetDescriptor();
-            const FileDescriptor* file_desc = descriptor->file();
-            const DescriptorPool* desc_pool = file_desc->pool();
-            util::MessageToJsonString(*message, &output);
-            proto_info("[%d]: %s\n", i, utf82ansi(output).c_str());
-        }
+        LuaExporter exporter;
+        exporter.ExportResult(it->first, it->second);
     }
     return true;
 }
