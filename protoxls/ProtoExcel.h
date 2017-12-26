@@ -14,6 +14,7 @@ using namespace google::protobuf::internal;
 #include "logger.h"
 #include "strconv.h"
 #include "option.pb.h"
+#include "ConfigStore.h"
 
 class ProtoErrorCollector : public MultiFileErrorCollector
 {
@@ -38,9 +39,7 @@ private:
     bool ParseExcel(const Descriptor* descriptor, vector<const Message*>& datas, string excel_name, string sheet_name);
 
 private:
-    typedef std::map<const Descriptor*, vector<Message*>> SchemeParsed;
-    SchemeParsed parseds_;
-
+    vector<ConfigStore*> parseds_;
     ProtoErrorCollector errorCollector_;
     DiskSourceTree sourceTree_;
     Importer importer_;

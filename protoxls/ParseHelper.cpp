@@ -102,6 +102,54 @@ void ParseHelper::AddStringField(Message* message, const FieldDescriptor* field,
     reflection->AddString(message, field, ansi2utf8(value));
 }
 
+bool ParseHelper::GetNumberField(Message* message, const FieldDescriptor* field, int64* value)
+{
+    const Reflection* reflection = message->GetReflection();
+    switch (field->cpp_type())
+    {
+    case FieldDescriptor::CPPTYPE_DOUBLE:
+        *value = (int64)reflection->GetDouble(*message, field);
+        break;
+    case FieldDescriptor::CPPTYPE_FLOAT:
+        *value = (int64)reflection->GetFloat(*message, field);
+        break;
+    case FieldDescriptor::CPPTYPE_INT32:
+        *value = (int64)reflection->GetInt32(*message, field);
+        break;
+    case FieldDescriptor::CPPTYPE_UINT32:
+        *value = (int64)reflection->GetUInt32(*message, field);
+        break;
+    case FieldDescriptor::CPPTYPE_INT64:
+        *value = (int64)reflection->GetInt64(*message, field);
+        break;
+    case FieldDescriptor::CPPTYPE_UINT64:
+        *value = (int64)reflection->GetUInt64(*message, field);
+        break;
+    case FieldDescriptor::CPPTYPE_ENUM:
+        *value = (int64)reflection->GetEnumValue(*message, field);
+        break;
+    default:
+        proto_error("GetNumberField field unknow type, field=%s\n", field->full_name().c_str());
+        return false;
+    }
+    return true;
+}
+
+bool ParseHelper::GetStringField(Message* message, const FieldDescriptor* field, string* value)
+{
+    const Reflection* reflection = message->GetReflection();
+    switch (field->cpp_type())
+    {
+    case FieldDescriptor::CPPTYPE_STRING:
+        *value = reflection->GetString(*message, field);
+        break;
+    default:
+        proto_error("GetStringField field unknow type, field=%s\n", field->full_name().c_str());
+        return false;
+    }
+    return true;
+}
+
 bool ParseHelper::GetEnumValue(const FieldDescriptor* field, const char* text, int* value)
 {
     string enum_text = ansi2utf8(text);

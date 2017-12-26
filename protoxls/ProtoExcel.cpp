@@ -2,6 +2,7 @@
 #include "ProtoExcel.h"
 #include "ExcelParser.h"
 #include "LuaExporter.h"
+#include "ConfigStore.h"
 
 ProtoExcel::ProtoExcel()
 :importer_(&sourceTree_, &errorCollector_)
@@ -41,6 +42,7 @@ bool ProtoExcel::ParseConfig(const Descriptor* descriptor)
     const MessageOptions& option = descriptor->options();
     vector<string> excel_names = Split(utf82ansi(option.GetExtension(excel)), ";");
     vector<string> sheet_names = Split(utf82ansi(option.GetExtension(sheet)), ";");
+    vector<string> key_names = Split(utf82ansi(option.GetExtension(key)), ";");
     if (excel_names.size() == 0 || sheet_names.size() == 0)
     {
         proto_error("ParseConfig excel/sheet option miss, scheme=%s\n", descriptor->full_name().c_str());
@@ -81,17 +83,23 @@ bool ProtoExcel::ParseConfig(const Descriptor* descriptor)
         }
     }
 
-    parseds_.insert(std::make_pair(descriptor, datas));
+    ConfigStore* store = new ConfigStore(descriptor);
+    store->ImportData(datas);
+    if (!store->BuildStore(key_names)) {
+        proto_error("ParseConfig build store fail, scheme=%s\n", descriptor->full_name().c_str());
+        return false;
+    }
+
+    parseds_.push_back(store);
     return true;
 }
 
 bool ProtoExcel::ExportResult()
 {
-    SchemeParsed::iterator it = parseds_.begin();
-    for (; it != parseds_.end(); ++it)
+    for (int i = 0; i < parseds_.size(); i++)
     {
-        LuaExporter exporter;
-        exporter.ExportResult(it->first, it->second);
+        ConfigStore* store = parseds_[i];
+        LuaExporter::ExportResult(store);
     }
     return true;
 }

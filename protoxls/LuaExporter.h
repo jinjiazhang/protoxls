@@ -4,6 +4,7 @@
 #include "logger.h"
 #include "strconv.h"
 #include "option.pb.h"
+#include "ConfigStore.h"
 
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/dynamic_message.h>
@@ -18,21 +19,9 @@ using namespace google::protobuf::internal;
 class LuaExporter
 {
 public:
-    LuaExporter();
-    ~LuaExporter();
-
-public:
-    bool ExportResult(const Descriptor* descriptor, vector<Message*> datas);
-
-private:
-    bool GenerateCode(string& code);
-    bool WriteToFile(string& result);
-
-private:
-    vector<string> keys_;
-    string output_;
-    string prefix_;
-    string suffix_;
+    static bool ExportResult(ConfigStore* store);
+    static string GenerateCode(ConfigStore* store, int layer=0);
+    static string GenerateCode(Message* data, int layer=0);
 };
 
 
