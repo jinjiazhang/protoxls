@@ -24,10 +24,10 @@ public:
     static void AddEnumField(Message* message, const FieldDescriptor* field, const char* text);
     static void AddStringField(Message* message, const FieldDescriptor* field, const char* value);
 
-    static bool GetNumberField(Message* message, const FieldDescriptor* field, int64* value);
-    static bool GetStringField(Message* message, const FieldDescriptor* field, string* value);
     static bool GetEnumValue(const FieldDescriptor* field, const char* text, int* value);
     static bool FillNumberArray(Message* message, const FieldDescriptor* field, const char* text);
+    static bool GetNumberField(const Message& message, const FieldDescriptor* field, int64* value);
+    static bool GetStringField(const Message& message, const FieldDescriptor* field, string* value);
 };
 
 #endif

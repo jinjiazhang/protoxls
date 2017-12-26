@@ -82,10 +82,10 @@ void ConfigStore::ExportKeys(vector<StoreKey>& keys)
     }
 }
 
-bool ConfigStore::GetKeyVal(Message* data, string key_name, StoreKey* store_key)
+bool ConfigStore::GetKeyVal(const Message& data, string key_name, StoreKey* store_key)
 {
-    const Reflection* reflection = data->GetReflection();
-    const Descriptor* descriptor = data->GetDescriptor();
+    const Reflection* reflection = data.GetReflection();
+    const Descriptor* descriptor = data.GetDescriptor();
     const FieldDescriptor* field = descriptor->FindFieldByName(key_name);
     if (field == NULL) {
         proto_error("GetKeyVal key filed not found, key=%s, scheme=%s\n", key_name.c_str(), descriptor->full_name().c_str());
@@ -126,7 +126,7 @@ bool ConfigStore::BuildStore(vector<string> keys)
     {
         Message* data = datas_[i];
         StoreKey store_key;
-        if (!GetKeyVal(data, key_name, &store_key)) {
+        if (!GetKeyVal(*data, key_name, &store_key)) {
             proto_error("BuildStore get keyval fail, key=%s\n", key_name.c_str());
             return false;
         }

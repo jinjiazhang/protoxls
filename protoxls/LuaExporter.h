@@ -21,7 +21,11 @@ class LuaExporter
 public:
     static bool ExportResult(ConfigStore* store);
     static string GenerateCode(ConfigStore* store, int layer=0);
-    static string GenerateCode(Message* data, int layer=0);
+    static string GenerateCode(const Message& message, int layer=0);
+    static string GenerateField(const Message& message, const FieldDescriptor* field, int layer=0);
+    static string GenerateTable(const Message& message, const FieldDescriptor* field, int layer=0);
+    static string GenerateSingle(const Message& message, const FieldDescriptor* field, int layer=0);
+    static string GenerateMultiple(const Message& message, const FieldDescriptor* field, int layer=0);
 };
 
 

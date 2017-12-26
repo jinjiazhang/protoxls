@@ -51,8 +51,8 @@ public:
     bool  HasStoreMap();
     void  ExportKeys(vector<StoreKey>& keys);
 
-private:
-    bool GetKeyVal(Message* data, string key_name, StoreKey* store_key);
+public:
+    static bool GetKeyVal(const Message& data, string key_name, StoreKey* store_key);
 
 private:
     vector<Message*> datas_;
