@@ -35,8 +35,11 @@ bool LuaExporter::ExportResult(ConfigStore* store)
     result += suffix_text;
 
     string output_text = option.GetExtension(output);
-    string file_name = output_text + ".lua";
+    if (output_text.empty()) {
+        output_text = descriptor->name();
+    }
 
+    string file_name = output_text + ".lua";
     FILE* fp = fopen(file_name.c_str(), "w");
     if (fp == NULL) {
         proto_error("ExportResult open file fail, file=%s\n", file_name.c_str());
@@ -72,7 +75,7 @@ string LuaExporter::GenerateCode(ConfigStore* store, int layer)
         OUTER_SPACE(code);
 
         ConfigStore* sub_store = store->GetConfig(store_key);
-        if (sub_store->HasStoreMap())
+        if (sub_store->HasChildren())
             code << GenerateCode(sub_store, layer + 1);
         else
             code << GenerateCode(*sub_store->GetData(), layer + 1);

@@ -5,6 +5,7 @@
 ConfigStore::ConfigStore(const Descriptor* descriptor)
 {
     stores_ = NULL;
+    key_names_ = NULL;
     descriptor_ = descriptor;
 }
 
@@ -13,7 +14,7 @@ ConfigStore::~ConfigStore()
     descriptor_ = NULL;
     if (stores_ != NULL)
     {
-        StoreMap::iterator it = stores_->begin();
+        ConfigStoreMap::iterator it = stores_->begin();
         for (; it != stores_->end(); ++it) {
             delete it->second;
             it->second = NULL;
@@ -31,6 +32,11 @@ void ConfigStore::ImportData(Message* data)
 void ConfigStore::ImportData(vector<Message*> datas)
 {
     datas_.insert(datas_.end(), datas.begin(), datas.end());
+}
+
+vector<string> ConfigStore::GetKeyNames()
+{
+    return *key_names_;
 }
 
 const Descriptor* ConfigStore::GetDescriptor()
@@ -61,25 +67,30 @@ ConfigStore* ConfigStore::GetConfig(string str_key)
 
 ConfigStore* ConfigStore::GetConfig(StoreKey store_key)
 {
-    StoreMap::iterator it = stores_->find(store_key);
+    ConfigStoreMap::iterator it = stores_->find(store_key);
     if (it == stores_->end()) {
         return NULL;
     }
     return it->second;
 }
 
-bool ConfigStore::HasStoreMap()
+bool ConfigStore::HasChildren()
 {
     return stores_ != NULL;
 }
 
 void ConfigStore::ExportKeys(vector<StoreKey>& keys)
 {
-    StoreMap::iterator it = stores_->begin();
+    ConfigStoreMap::iterator it = stores_->begin();
     for (; it != stores_->end(); ++it)
     {
         keys.push_back(it->first);
     }
+}
+
+void ConfigStore::ExportDatas(vector<Message*>& datas)
+{
+    datas.insert(datas.end(), datas_.begin(), datas_.end());
 }
 
 bool ConfigStore::GetKeyVal(const Message& data, string key_name, StoreKey* store_key)
@@ -113,15 +124,17 @@ bool ConfigStore::GetKeyVal(const Message& data, string key_name, StoreKey* stor
     return true;
 }
 
-bool ConfigStore::BuildStore(vector<string> keys)
+bool ConfigStore::BuildStore(vector<string> key_names)
 {
-    if (keys.size() == 0) {
+    if (key_names.size() == 0) {
         proto_error("BuildStore keys empty");
         return false;
     }
     
-    stores_ = new StoreMap();
-    string key_name = keys.front();
+    stores_ = new ConfigStoreMap();
+    key_names_ = new vector<string>(key_names);
+
+    string key_name = key_names.front();
     for (int i = 0; i < datas_.size(); i++)
     {
         Message* data = datas_[i];
@@ -131,7 +144,7 @@ bool ConfigStore::BuildStore(vector<string> keys)
             return false;
         }
 
-        StoreMap::iterator it = stores_->find(store_key);
+        ConfigStoreMap::iterator it = stores_->find(store_key);
         if (it == stores_->end())
         {
             ConfigStore* store = new ConfigStore(descriptor_);
@@ -144,10 +157,10 @@ bool ConfigStore::BuildStore(vector<string> keys)
         }
     }
 
-    if (keys.size() > 1) {
+    if (key_names.size() > 1) {
         vector<string> sub_keys;
-        sub_keys.insert(sub_keys.end(), keys.begin()+1, keys.end());
-        StoreMap::iterator it = stores_->begin();
+        sub_keys.insert(sub_keys.end(), key_names.begin()+1, key_names.end());
+        ConfigStoreMap::iterator it = stores_->begin();
         for (; it != stores_->end(); ++it)
         {
             if (!it->second->BuildStore(sub_keys)) {

@@ -32,7 +32,7 @@ struct StoreKey {
 };
 
 class ConfigStore {
-    typedef std::map<StoreKey, ConfigStore*> StoreMap;
+    typedef std::map<StoreKey, ConfigStore*> ConfigStoreMap;
 public:
     ConfigStore(const Descriptor* descriptor);
     ~ConfigStore();
@@ -40,23 +40,26 @@ public:
 public:
     void ImportData(Message* data);
     void ImportData(vector<Message*> datas);
-    bool BuildStore(vector<string> keys);
+    bool HasChildren();
+    bool BuildStore(vector<string> key_names);
 
 public:
     Message* GetData();
     ConfigStore* GetConfig(int num_key);
     ConfigStore* GetConfig(string str_key);
     ConfigStore* GetConfig(StoreKey store_key);
+    vector<string> GetKeyNames();
     const Descriptor* GetDescriptor();
-    bool  HasStoreMap();
-    void  ExportKeys(vector<StoreKey>& keys);
+    void ExportKeys(vector<StoreKey>& keys);
+    void ExportDatas(vector<Message*>& datas);
 
 public:
     static bool GetKeyVal(const Message& data, string key_name, StoreKey* store_key);
 
 private:
     vector<Message*> datas_;
-    StoreMap* stores_;
+    ConfigStoreMap* stores_;
+    vector<string>* key_names_;
     const Descriptor* descriptor_;
 };
 

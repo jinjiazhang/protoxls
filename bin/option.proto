@@ -18,3 +18,11 @@ extend google.protobuf.FieldOptions {
 extend google.protobuf.EnumValueOptions {
 	string cname = 1001;
 }
+
+message StoreScheme {
+	int64 magic = 1;
+	string scheme = 2;
+	string hash = 3;
+	repeated string keys = 4;
+	repeated bytes datas = 5;
+}

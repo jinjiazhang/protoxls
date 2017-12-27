@@ -1,8 +1,9 @@
 #include <algorithm>
 #include "ProtoExcel.h"
 #include "ExcelParser.h"
-#include "LuaExporter.h"
 #include "ConfigStore.h"
+#include "LuaExporter.h"
+#include "BinExporter.h"
 
 ProtoExcel::ProtoExcel()
 :importer_(&sourceTree_, &errorCollector_)
@@ -100,6 +101,7 @@ bool ProtoExcel::ExportResult()
     {
         ConfigStore* store = parseds_[i];
         LuaExporter::ExportResult(store);
+        BinExporter::ExportResult(store);
     }
     return true;
 }
