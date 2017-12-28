@@ -1,3 +1,4 @@
+#include <fstream>
 #include "BinExporter.h"
 
 bool BinExporter::ExportResult(ConfigStore* store)
@@ -22,21 +23,21 @@ bool BinExporter::ExportResult(ConfigStore* store)
         result.add_datas(data);
     }
 
+    result.set_hash("");
+
     string output_text = option.GetExtension(output);
     if (output_text.empty()) {
         output_text = descriptor->name();
     }
 
     string file_name = output_text + ".bytes";
-    FILE* fp = fopen(file_name.c_str(), "w");
-    if (fp == NULL) {
+    std::ofstream file(file_name.c_str(), std::ios::binary);
+    if (file.bad()) {
         proto_error("ExportResult open file fail, file=%s\n", file_name.c_str());
         return false;
     }
 
-    result.set_hash("");
-    string bytes = result.SerializeAsString();
-    fprintf(fp, bytes.c_str());
-    fclose(fp);
+    result.SerializeToOstream(&file);
+    file.close();
     return true;
 }
