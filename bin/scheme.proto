@@ -6,7 +6,7 @@ message RoleScheme {
 	option (excel) = "角色数据表.xlsx";
 	option (sheet) = "角色数据";
 	option (key) = "roleId";
-	option (output) = "role_data.lua";
+	option (output) = "role_data";
 	option (prefix) = "_G['RoleDataTable'] = ";
 
 	message PropScheme {

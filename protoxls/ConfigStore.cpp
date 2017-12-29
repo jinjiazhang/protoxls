@@ -1,5 +1,4 @@
 #include "ConfigStore.h"
-#include "ParseHelper.h"
 
 
 ConfigStore::ConfigStore(const Descriptor* descriptor)
@@ -106,16 +105,28 @@ bool ConfigStore::GetKeyVal(const Message& data, string key_name, StoreKey* stor
     switch (field->cpp_type())
     {
     case FieldDescriptor::CPPTYPE_INT32:
+        store_key->key_type = KEY_TINTEGER;
+        store_key->num_key = reflection->GetInt32(data, field);
+        break;
     case FieldDescriptor::CPPTYPE_UINT32:
+        store_key->key_type = KEY_TINTEGER;
+        store_key->num_key = reflection->GetUInt32(data, field);
+        break;
     case FieldDescriptor::CPPTYPE_INT64:
+        store_key->key_type = KEY_TINTEGER;
+        store_key->num_key = reflection->GetInt64(data, field);
+        break;
     case FieldDescriptor::CPPTYPE_UINT64:
+        store_key->key_type = KEY_TINTEGER;
+        store_key->num_key = reflection->GetUInt64(data, field);
+        break;
     case FieldDescriptor::CPPTYPE_ENUM:
         store_key->key_type = KEY_TINTEGER;
-        ParseHelper::GetNumberField(data, field, &store_key->num_key);
+        store_key->num_key = reflection->GetEnumValue(data, field);
         break;
     case FieldDescriptor::CPPTYPE_STRING:
         store_key->key_type = KEY_TSTRING;
-        ParseHelper::GetStringField(data, field, &store_key->str_key);
+        store_key->str_key = reflection->GetString(data, field);
         break;
     default:
         proto_error("GetKeyVal key filed unknow type, key=%s, scheme=%s\n", key_name.c_str(), descriptor->full_name().c_str());
@@ -135,7 +146,7 @@ bool ConfigStore::BuildStore(vector<string> key_names)
     key_names_ = new vector<string>(key_names);
 
     string key_name = key_names.front();
-    for (int i = 0; i < datas_.size(); i++)
+    for (size_t i = 0; i < datas_.size(); i++)
     {
         Message* data = datas_[i];
         StoreKey store_key;
