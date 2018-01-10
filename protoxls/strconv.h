@@ -1,6 +1,8 @@
 #ifndef _JINJIAZHANG_STRCONV_H_
 #define _JINJIAZHANG_STRCONV_H_
 
+#ifdef _WIN32
+
 #include <Windows.h>
 #include <string>
 #include <tchar.h>
@@ -14,5 +16,12 @@
 
 std::wstring m2wstring(std::string src, int codepage);
 std::string w2mstring(std::wstring src, int codepage);
+
+#else
+
+#define ansi2utf8(s)			(s)
+#define utf82ansi(s)			(s)
+
+#endif
 
 #endif

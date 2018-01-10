@@ -1,5 +1,7 @@
 #include "strconv.h"
 
+#ifdef _WIN32
+
 std::wstring m2wstring(std::string src, int codepage)
 {
     int size = ::lstrlenA(src.c_str()) + 1;
@@ -23,3 +25,5 @@ std::string w2mstring(std::wstring src, int codepage)
     delete [] temp;
     return dest;
 }
+
+#endif

@@ -1,7 +1,7 @@
-INC_PATH = ../protobuf-3.4.1/src
+INC_PATH = ../include/libxl ../protobuf-3.4.1/src
 LIB_PATH = ../libs
 BIN_PATH = ../bin
-LIB = protobuf pthread
+LIB = xl protobuf pthread
 
 CC = g++
 CC_FLAG = 
@@ -18,6 +18,9 @@ $(PRG):$(OBJ)
 .SUFFIXES: .c .cc .o .cpp
 .cpp.o:
 	$(CC) $(CC_FLAG) $(INC_PATH:%=-I%) -c $*.cpp -o $*.o
+
+.cc.o:
+	$(CC) $(CC_FLAG) $(INC_PATH:%=-I%) -c $*.cc -o $*.o
 
 .PRONY:clean
 clean:

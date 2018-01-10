@@ -47,7 +47,12 @@ bool ExcelParser::LoadSheet(string excel_name, string sheet_name)
         return false;
     }
 
+#ifdef _WIN32
     book_->setKey("protoxls", "windows-27262a0805c8e4046cbd6661ael7mahf");
+#else
+    book_->setKey("protoxls", "linux-e7d61a7895a8a4140c0d26314em7sacf");
+#endif
+
     if (!book_->load(excel_name.c_str()))
     {
         proto_error("LoadSheet load excel fail, excel=%s, error=%s\n", excel_name.c_str(), book_->errorMessage());
