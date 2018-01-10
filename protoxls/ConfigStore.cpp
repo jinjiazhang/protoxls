@@ -138,7 +138,7 @@ bool ConfigStore::GetKeyVal(const Message& data, string key_name, StoreKey* stor
 bool ConfigStore::BuildStore(vector<string> key_names)
 {
     if (key_names.size() == 0) {
-        proto_error("BuildStore keys empty");
+        proto_error("BuildStore keys empty, scheme=%s\n", descriptor_->full_name().c_str());
         return false;
     }
     

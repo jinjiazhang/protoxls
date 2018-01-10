@@ -30,13 +30,14 @@ int main(int argc, char* argv[])
     }
 
     ProtoExcel runner;
-    if (!runner.ParseScheme(argv[1])) {
-        proto_error("protoxls parse scheme fail\n");
+	char* proto = argv[1];
+    if (!runner.ParseScheme(proto)) {
+        proto_error("protoxls parse scheme fail, proto=%s\n", proto);
         return -1;
     }
 
     if (!runner.ExportResult()) {
-        proto_error("protoxls exprot result fail\n");
+        proto_error("protoxls exprot result fail, proto=%s\n", proto);
         return -2;
     }
     return 0;
