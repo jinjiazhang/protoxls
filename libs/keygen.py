@@ -4,11 +4,9 @@ import random
 import hashlib
 
 def genkey_29():
-	num = 0
-	while True:
+	num = 0x65
+	while num == 0x65:
 		num = random.randint(0x63, 0x7a)
-		if num != 0x65:
-			break
 	return chr(num)
 
 def genkey_31(k29):
