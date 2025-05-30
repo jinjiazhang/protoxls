@@ -2,6 +2,8 @@ syntax = "proto3";
 
 import "google/protobuf/descriptor.proto";
 
+option go_package="/protoxls";
+
 extend google.protobuf.MessageOptions {
 	string excel = 1001;
 	string sheet = 1002;

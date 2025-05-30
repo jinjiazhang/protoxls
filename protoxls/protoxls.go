@@ -35,5 +35,6 @@ func GenerateTables(protoFile string, importPaths []string) error {
 }
 
 func GenerateTable(config *XlsConfig, md *desc.MessageDescriptor) error {
+	fmt.Printf("GenerateTable: %+v", config)
 	return nil
 }
