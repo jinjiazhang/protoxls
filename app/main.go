@@ -1,23 +1,33 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"os"
+	"log"
+	"path/filepath"
+	"protoxls/protoxls"
 )
 
 func main() {
-	file := "scheme.proto"
-	if len(os.Args) >= 2 {
-		file = os.Args[1]
-	}
+	protoFilePath := flag.String("proto", "", "Path to the .proto file to parse")
+	importPaths := flag.String("I", ".", "import paths for .proto files")
 
-	scheme, err := ParseScheme(file)
-	if err != nil {
-		fmt.Println("parse scheme fail, err:", err)
+	flag.Parse()
+	if *protoFilePath == "" {
+		fmt.Println("Usage: protoxls -proto <path_to_proto_file> [-I <import_paths>]")
+		flag.PrintDefaults()
 		return
 	}
 
-	for _, meta := range scheme.GetMessageTypes() {
-		LoadXlsStore(meta)
+	var parsedImportPaths []string
+	if *importPaths != "" {
+		parsedImportPaths = filepath.SplitList(*importPaths)
+	} else {
+		parsedImportPaths = []string{"."}
+	}
+
+	err := protoxls.GenerateTables(*protoFilePath, parsedImportPaths)
+	if err != nil {
+		log.Fatal(err)
 	}
 }
