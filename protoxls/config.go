@@ -6,19 +6,19 @@ import (
 )
 
 type XlsConfig struct {
-	ExcelName string
-	SheetName string
-	KeyField  string
-	Prefix    string
-	Suffix    string
+	Excel  string
+	Sheet  string
+	Key    string
+	Prefix string
+	Suffix string
 }
 
-func parseXlsConfig(md *desc.MessageDescriptor) *XlsConfig {
+func parseXlsConfig(msgDesc *desc.MessageDescriptor) *XlsConfig {
 	config := &XlsConfig{}
-	options := md.GetMessageOptions()
-	config.ExcelName = proto.GetExtension(options, E_Excel).(string)
-	config.SheetName = proto.GetExtension(options, E_Sheet).(string)
-	config.KeyField = proto.GetExtension(options, E_Key).(string)
+	options := msgDesc.GetMessageOptions()
+	config.Excel = proto.GetExtension(options, E_Excel).(string)
+	config.Sheet = proto.GetExtension(options, E_Sheet).(string)
+	config.Key = proto.GetExtension(options, E_Key).(string)
 	config.Prefix = proto.GetExtension(options, E_Prefix).(string)
 	config.Suffix = proto.GetExtension(options, E_Suffix).(string)
 	return config
