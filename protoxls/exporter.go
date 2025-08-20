@@ -24,19 +24,27 @@ type Exporter interface {
 }
 
 // LuaExporter exports configuration data to Lua format
-type LuaExporter struct{}
+type LuaExporter struct {
+	OutputDir string // Custom output directory, defaults to DefaultOutputDir if empty
+}
 
 // ExportResult exports configuration data to Lua format
 func (le *LuaExporter) ExportResult(store *ConfigStore) error {
 	descriptor := store.GetMessageDescriptor()
 	fileName := fmt.Sprintf("%s.lua", strings.ToLower(descriptor.GetName()))
 	
+	// Use custom output directory or default
+	outputDir := le.OutputDir
+	if outputDir == "" {
+		outputDir = DefaultOutputDir
+	}
+	
 	// Create output directory if it doesn't exist
-	if err := os.MkdirAll(DefaultOutputDir, DefaultFilePermissions); err != nil {
+	if err := os.MkdirAll(outputDir, DefaultFilePermissions); err != nil {
 		return fmt.Errorf("failed to create output directory: %v", err)
 	}
 
-	filePath := filepath.Join(DefaultOutputDir, fileName)
+	filePath := filepath.Join(outputDir, fileName)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to create lua file: %v", err)
@@ -175,19 +183,27 @@ func (le *LuaExporter) formatLuaKey(key StoreKey) string {
 }
 
 // BinExporter exports configuration data to binary format
-type BinExporter struct{}
+type BinExporter struct {
+	OutputDir string // Custom output directory, defaults to DefaultOutputDir if empty
+}
 
 // ExportResult exports configuration data to binary format
 func (be *BinExporter) ExportResult(store *ConfigStore) error {
 	descriptor := store.GetMessageDescriptor()
 	fileName := fmt.Sprintf("%s.bin", strings.ToLower(descriptor.GetName()))
 	
+	// Use custom output directory or default
+	outputDir := be.OutputDir
+	if outputDir == "" {
+		outputDir = DefaultOutputDir
+	}
+	
 	// Create output directory if it doesn't exist
-	if err := os.MkdirAll(DefaultOutputDir, DefaultFilePermissions); err != nil {
+	if err := os.MkdirAll(outputDir, DefaultFilePermissions); err != nil {
 		return fmt.Errorf("failed to create output directory: %v", err)
 	}
 
-	filePath := filepath.Join(DefaultOutputDir, fileName)
+	filePath := filepath.Join(outputDir, fileName)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to create binary file: %v", err)
@@ -225,19 +241,27 @@ func (be *BinExporter) ExportResult(store *ConfigStore) error {
 }
 
 // JsonExporter exports configuration data to JSON format
-type JsonExporter struct{}
+type JsonExporter struct {
+	OutputDir string // Custom output directory, defaults to DefaultOutputDir if empty
+}
 
 // ExportResult exports configuration data to JSON format
 func (je *JsonExporter) ExportResult(store *ConfigStore) error {
 	descriptor := store.GetMessageDescriptor()
 	fileName := fmt.Sprintf("%s.json", strings.ToLower(descriptor.GetName()))
 	
+	// Use custom output directory or default
+	outputDir := je.OutputDir
+	if outputDir == "" {
+		outputDir = DefaultOutputDir
+	}
+	
 	// Create output directory if it doesn't exist
-	if err := os.MkdirAll(DefaultOutputDir, DefaultFilePermissions); err != nil {
+	if err := os.MkdirAll(outputDir, DefaultFilePermissions); err != nil {
 		return fmt.Errorf("failed to create output directory: %v", err)
 	}
 
-	filePath := filepath.Join(DefaultOutputDir, fileName)
+	filePath := filepath.Join(outputDir, fileName)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to create json file: %v", err)

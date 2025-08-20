@@ -6,28 +6,82 @@ import (
 	"log"
 	"path/filepath"
 	"protoxls/protoxls"
+	"strings"
 )
 
 func main() {
+	// Proto file and import paths
 	protoFilePath := flag.String("proto", "", "Path to the .proto file to parse")
-	importPaths := flag.String("I", ".", "import paths for .proto files")
+	importPaths := flag.String("I", ".", "Import paths for .proto files (colon-separated)")
+
+	// Output format flags (similar to protoc)
+	luaOut := flag.String("lua_out", "", "Generate Lua files in the specified directory")
+	jsonOut := flag.String("json_out", "", "Generate JSON files in the specified directory") 
+	binOut := flag.String("bin_out", "", "Generate binary files in the specified directory")
+
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [options] -proto <proto_file>\n\n", "protoxls")
+		fmt.Fprintf(flag.CommandLine.Output(), "Protocol buffer configuration table generator.\n\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "Options:\n")
+		flag.PrintDefaults()
+		fmt.Fprintf(flag.CommandLine.Output(), "\nExamples:\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto                          # Generate JSON files (default)\n", "protoxls")
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -json_out=./output      # Generate JSON files in ./output\n", "protoxls")
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -lua_out=./lua          # Generate Lua files in ./lua\n", "protoxls")
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -lua_out=./lua -json_out=./json  # Generate both formats\n", "protoxls")
+	}
 
 	flag.Parse()
+
+	// Validate required arguments
 	if *protoFilePath == "" {
-		fmt.Println("Usage: protoxls -proto <path_to_proto_file> [-I <import_paths>]")
-		flag.PrintDefaults()
+		fmt.Fprintf(flag.CommandLine.Output(), "Error: -proto flag is required\n\n")
+		flag.Usage()
 		return
 	}
 
+	// Parse import paths
 	var parsedImportPaths []string
 	if *importPaths != "" {
-		parsedImportPaths = filepath.SplitList(*importPaths)
+		if strings.Contains(*importPaths, ":") {
+			// Unix-style colon-separated paths
+			parsedImportPaths = strings.Split(*importPaths, ":")
+		} else {
+			// Use system-specific path list separator
+			parsedImportPaths = filepath.SplitList(*importPaths)
+		}
 	} else {
 		parsedImportPaths = []string{"."}
 	}
 
-	err := protoxls.ParseProtoFiles(*protoFilePath, parsedImportPaths)
+	// Configure export options
+	exportConfig := &protoxls.ExportConfig{
+		LuaOutput:  *luaOut,
+		JsonOutput: *jsonOut,
+		BinOutput:  *binOut,
+	}
+
+	// If no output format specified, default to JSON
+	if exportConfig.LuaOutput == "" && exportConfig.JsonOutput == "" && exportConfig.BinOutput == "" {
+		exportConfig.JsonOutput = "output"
+		fmt.Println("No output format specified, defaulting to JSON output in './output' directory")
+	}
+
+	// Parse proto files and generate tables
+	err := protoxls.ParseProtoFiles(*protoFilePath, parsedImportPaths, exportConfig)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	// Print success message
+	fmt.Printf("Successfully processed %s\n", *protoFilePath)
+	if exportConfig.LuaOutput != "" {
+		fmt.Printf("  - Lua files generated in: %s\n", exportConfig.LuaOutput)
+	}
+	if exportConfig.JsonOutput != "" {
+		fmt.Printf("  - JSON files generated in: %s\n", exportConfig.JsonOutput)
+	}
+	if exportConfig.BinOutput != "" {
+		fmt.Printf("  - Binary files generated in: %s\n", exportConfig.BinOutput)
 	}
 }

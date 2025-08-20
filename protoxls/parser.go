@@ -233,8 +233,15 @@ func parseMessage(message *dynamic.Message, msgDesc *desc.MessageDescriptor, row
 	return nil
 }
 
-// ParseProtoFiles parses proto files and generates configuration tables
-func ParseProtoFiles(protoFile string, importPaths []string) error {
+// ExportConfig holds configuration for different export formats
+type ExportConfig struct {
+	LuaOutput  string // Output directory for Lua files
+	JsonOutput string // Output directory for JSON files
+	BinOutput  string // Output directory for Binary files
+}
+
+// ParseProtoFiles parses proto files and generates configuration tables with custom export configuration
+func ParseProtoFiles(protoFile string, importPaths []string, exportConfig *ExportConfig) error {
 	parser := protoparse.Parser{
 		ImportPaths: importPaths,
 	}
@@ -262,8 +269,8 @@ func ParseProtoFiles(protoFile string, importPaths []string) error {
 		}
 	}
 
-	// Export results to various formats
-	return ExportConfigStores(configStores)
+	// Export results to specified formats
+	return ExportConfigStores(configStores, exportConfig)
 }
 
 // parseExcelToConfigStore parses Excel file data into ConfigStore
@@ -318,12 +325,24 @@ func parseExcelToConfigStore(tableConfig *TableSchema, msgDesc *desc.MessageDesc
 	return store, nil
 }
 
-// ExportConfigStores exports all configuration stores to various formats
-func ExportConfigStores(stores []*ConfigStore) error {
-	exporters := []Exporter{
-		&LuaExporter{},
-		&BinExporter{},
-		&JsonExporter{},
+// ExportConfigStores exports configuration stores to specified formats
+func ExportConfigStores(stores []*ConfigStore, exportConfig *ExportConfig) error {
+	var exporters []Exporter
+
+	// Add exporters based on configuration
+	if exportConfig.LuaOutput != "" {
+		exporters = append(exporters, &LuaExporter{OutputDir: exportConfig.LuaOutput})
+	}
+	if exportConfig.JsonOutput != "" {
+		exporters = append(exporters, &JsonExporter{OutputDir: exportConfig.JsonOutput})
+	}
+	if exportConfig.BinOutput != "" {
+		exporters = append(exporters, &BinExporter{OutputDir: exportConfig.BinOutput})
+	}
+
+	// If no exporters specified, default to JSON
+	if len(exporters) == 0 {
+		exporters = append(exporters, &JsonExporter{OutputDir: DefaultOutputDir})
 	}
 
 	for _, store := range stores {
