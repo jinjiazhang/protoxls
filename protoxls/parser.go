@@ -51,8 +51,11 @@ func columnExists(headerMap map[string]int, columnName string) bool {
 func parseFieldValue(message *dynamic.Message, field *desc.FieldDescriptor, row []string, headerMap map[string]int, rowIndex int, basePrefix string) error {
 	columnName := buildFieldColumnName(field, basePrefix)
 	colIndex, ok := headerMap[columnName]
-	if !ok || colIndex >= len(row) {
+	if !ok && field.GetType().String() != "TYPE_MESSAGE" {
 		return fmt.Errorf("column not found: %s", columnName)
+	}
+	if colIndex >= len(row) {
+		return fmt.Errorf("column index out of bounds for column %s: index %d >= row length %d", columnName, colIndex, len(row))
 	}
 	cellValue := row[colIndex]
 	if cellValue == "" {
@@ -154,7 +157,7 @@ func parseEnumValue(cellValue string, field *desc.FieldDescriptor) (int32, error
 // parseRepeatedFieldValue parses repeated field values from Excel row
 func parseRepeatedFieldValue(message *dynamic.Message, field *desc.FieldDescriptor, row []string, headerMap map[string]int, _ int, basePrefix string) error {
 	columnName := buildFieldColumnName(field, basePrefix)
-	
+
 	// Try parsing as separator-delimited array first
 	if columnExists(headerMap, columnName) {
 		if err := parseDelimitedArray(message, field, row, headerMap, columnName); err != nil {
@@ -198,7 +201,7 @@ func parseIndexedArray(message *dynamic.Message, field *desc.FieldDescriptor, ro
 		if !columnExists(headerMap, elementColumnName) {
 			break
 		}
-		
+
 		colIndex := headerMap[elementColumnName]
 		cellValue := row[colIndex]
 		if cellValue == "" {
@@ -355,4 +358,3 @@ func ExportConfigStores(stores []*ConfigStore, exportConfig *ExportConfig) error
 
 	return nil
 }
-
