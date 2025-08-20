@@ -2,6 +2,7 @@ package protoxls
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/jhump/protoreflect/desc"
@@ -132,7 +133,7 @@ func parseSingleField(data *dynamic.Message, field *desc.FieldDescriptor, row []
 	return nil
 }
 
-func parseRepeatedField(data *dynamic.Message, field *desc.FieldDescriptor, row []string, headerMap map[string]int, rowIdx int, base string) error {
+func parseRepeatedField(data *dynamic.Message, field *desc.FieldDescriptor, row []string, headerMap map[string]int, _ int, base string) error {
 	textName := getFieldText(field, base)
 	// 1. 尝试分隔符数组
 	if hasColumn(headerMap, textName) {
@@ -234,19 +235,12 @@ func parseRepeatedField(data *dynamic.Message, field *desc.FieldDescriptor, row 
 	return nil
 }
 
-func parseMapField(data *dynamic.Message, field *desc.FieldDescriptor, row []string, headerMap map[string]int, rowIdx int, base string) error {
-	// map字段一般为message，包含key/value
-	// 这里只做简单处理，实际可递归
-	return nil // TODO: map支持
-}
 
 func parseMessage(data *dynamic.Message, msgDesc *desc.MessageDescriptor, row []string, headerMap map[string]int, rowIdx int, base string) error {
 	for _, field := range msgDesc.GetFields() {
 		if field.IsMap() {
-			err := parseMapField(data, field, row, headerMap, rowIdx, base)
-			if err != nil {
-				return err
-			}
+			// TODO: Map fields are not yet supported
+			continue
 		} else if field.IsRepeated() {
 			err := parseRepeatedField(data, field, row, headerMap, rowIdx, base)
 			if err != nil {
@@ -272,37 +266,42 @@ func GenerateTables(protoFile string, importPaths []string) error {
 		return fmt.Errorf("failed to parse proto, file:%v, err: %v", protoFile, err)
 	}
 
+	var stores []*ConfigStore
+
 	for _, fd := range fileDescriptors {
 		for _, md := range fd.GetMessageTypes() {
-			config := parseXlsConfig(md)
+			config := parseTableSchema(md)
 			if config == nil {
+				log.Printf("Skipping message %s: no xls config found", md.GetName())
 				continue
 			}
 
-			err = GenerateTable(config, md)
+			store, err := GenerateTable(config, md)
 			if err != nil {
 				return fmt.Errorf("failed to generate table, message:%v, err: %v", md.GetName(), err)
 			}
+			stores = append(stores, store)
 		}
 	}
 
-	return nil
+	// Export results
+	return ExportResults(stores)
 }
 
-func GenerateTable(config *XlsConfig, msgDesc *desc.MessageDescriptor) error {
+func GenerateTable(config *TableSchema, msgDesc *desc.MessageDescriptor) (*ConfigStore, error) {
 	f, err := excelize.OpenFile(config.Excel)
 	if err != nil {
-		return fmt.Errorf("failed to open excel file: %v", err)
+		return nil, fmt.Errorf("failed to open excel file: %v", err)
 	}
 	defer f.Close()
 
 	rows, err := f.GetRows(config.Sheet)
 	if err != nil {
-		return fmt.Errorf("failed to get sheet: %v", err)
+		return nil, fmt.Errorf("failed to get sheet: %v", err)
 	}
 
 	if len(rows) < 2 {
-		return fmt.Errorf("sheet %s has no data", config.Sheet)
+		return nil, fmt.Errorf("sheet %s has no data", config.Sheet)
 	}
 
 	headers := rows[0]
@@ -310,15 +309,58 @@ func GenerateTable(config *XlsConfig, msgDesc *desc.MessageDescriptor) error {
 	for idx, h := range headers {
 		headerMap[h] = idx
 	}
+
+	// Create config store
+	store := NewConfigStore(msgDesc)
+
+	// Parse data rows
 	datas := make([]*dynamic.Message, 0, len(rows)-1)
 	for i, row := range rows[1:] {
 		data := dynamic.NewMessage(msgDesc)
 		err := parseMessage(data, msgDesc, row, headerMap, i, "")
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("failed to parse row %d: %v", i+2, err)
 		}
 		datas = append(datas, data)
 	}
-	// TODO: SaveJsonTable(config, datas)
+
+	// Import data into store
+	store.ImportDatas(datas)
+
+	// Build store with keys
+	if config.Key != "" {
+		keyNames := Split(config.Key, ";")
+		if err := store.BuildStore(keyNames); err != nil {
+			return nil, fmt.Errorf("failed to build store: %v", err)
+		}
+	}
+
+	log.Printf("Successfully parsed %d rows for message %s", len(datas), msgDesc.GetName())
+	return store, nil
+}
+
+// ExportResults exports all configuration stores to various formats
+func ExportResults(stores []*ConfigStore) error {
+	luaExporter := &LuaExporter{}
+	binExporter := &BinExporter{}
+	jsonExporter := &JsonExporter{}
+
+	for _, store := range stores {
+		// Export to Lua format
+		if err := luaExporter.ExportResult(store); err != nil {
+			log.Printf("Failed to export Lua for %s: %v", store.GetDescriptor().GetName(), err)
+		}
+
+		// Export to Binary format
+		if err := binExporter.ExportResult(store); err != nil {
+			log.Printf("Failed to export Binary for %s: %v", store.GetDescriptor().GetName(), err)
+		}
+
+		// Export to JSON format
+		if err := jsonExporter.ExportResult(store); err != nil {
+			log.Printf("Failed to export JSON for %s: %v", store.GetDescriptor().GetName(), err)
+		}
+	}
+
 	return nil
 }
