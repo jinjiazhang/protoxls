@@ -26,7 +26,7 @@ func main() {
 		parsedImportPaths = []string{"."}
 	}
 
-	err := protoxls.GenerateTables(*protoFilePath, parsedImportPaths)
+	err := protoxls.ParseProtoFiles(*protoFilePath, parsedImportPaths)
 	if err != nil {
 		log.Fatal(err)
 	}

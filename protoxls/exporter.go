@@ -11,29 +11,40 @@ import (
 	"github.com/jhump/protoreflect/dynamic"
 )
 
+const (
+	// DefaultOutputDir is the default directory for exported files
+	DefaultOutputDir = "output"
+	// DefaultFilePermissions for created files and directories
+	DefaultFilePermissions = 0755
+)
+
+// Exporter defines the interface for exporting configuration data
+type Exporter interface {
+	ExportResult(store *ConfigStore) error
+}
+
 // LuaExporter exports configuration data to Lua format
 type LuaExporter struct{}
 
+// ExportResult exports configuration data to Lua format
 func (le *LuaExporter) ExportResult(store *ConfigStore) error {
-	descriptor := store.GetDescriptor()
+	descriptor := store.GetMessageDescriptor()
 	fileName := fmt.Sprintf("%s.lua", strings.ToLower(descriptor.GetName()))
 	
 	// Create output directory if it doesn't exist
-	outputDir := "output"
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(DefaultOutputDir, DefaultFilePermissions); err != nil {
 		return fmt.Errorf("failed to create output directory: %v", err)
 	}
 
-	filePath := filepath.Join(outputDir, fileName)
+	filePath := filepath.Join(DefaultOutputDir, fileName)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to create lua file: %v", err)
 	}
 	defer file.Close()
 
-	luaCode := le.generateCode(store, 0)
-	_, err = file.WriteString(luaCode)
-	if err != nil {
+	luaCode := le.generateLuaCode(store, 0)
+	if _, err = file.WriteString(luaCode); err != nil {
 		return fmt.Errorf("failed to write lua code: %v", err)
 	}
 
@@ -41,18 +52,19 @@ func (le *LuaExporter) ExportResult(store *ConfigStore) error {
 	return nil
 }
 
-func (le *LuaExporter) generateCode(store *ConfigStore, layer int) string {
-	indent := strings.Repeat("    ", layer)
+// generateLuaCode generates Lua code for the configuration data
+func (le *LuaExporter) generateLuaCode(store *ConfigStore, indentLevel int) string {
+	indent := strings.Repeat("    ", indentLevel)
 	var result strings.Builder
 
-	if store.HasChildren() {
+	if store.HasChildStores() {
 		result.WriteString("{\n")
-		keys := store.ExportKeys()
+		keys := store.GetAllKeys()
 		for i, key := range keys {
-			childStore := store.GetConfig(key.String())
+			childStore := store.GetChildStore(key.String())
 			if childStore != nil {
-				result.WriteString(fmt.Sprintf("%s    [%s] = ", indent, le.formatKey(key)))
-				result.WriteString(le.generateCode(childStore, layer+1))
+				result.WriteString(fmt.Sprintf("%s    [%s] = ", indent, le.formatLuaKey(key)))
+				result.WriteString(le.generateLuaCode(childStore, indentLevel+1))
 				if i < len(keys)-1 {
 					result.WriteString(",")
 				}
@@ -61,9 +73,9 @@ func (le *LuaExporter) generateCode(store *ConfigStore, layer int) string {
 		}
 		result.WriteString(fmt.Sprintf("%s}", indent))
 	} else {
-		data := store.GetData()
-		if data != nil {
-			result.WriteString(le.generateMessage(data, layer))
+		message := store.GetFirstMessage()
+		if message != nil {
+			result.WriteString(le.generateLuaMessage(message, indentLevel))
 		} else {
 			result.WriteString("{}")
 		}
@@ -72,8 +84,9 @@ func (le *LuaExporter) generateCode(store *ConfigStore, layer int) string {
 	return result.String()
 }
 
-func (le *LuaExporter) generateMessage(msg *dynamic.Message, layer int) string {
-	indent := strings.Repeat("    ", layer)
+// generateLuaMessage generates Lua code for a protobuf message
+func (le *LuaExporter) generateLuaMessage(msg *dynamic.Message, indentLevel int) string {
+	indent := strings.Repeat("    ", indentLevel)
 	var result strings.Builder
 	
 	result.WriteString("{\n")
@@ -85,7 +98,7 @@ func (le *LuaExporter) generateMessage(msg *dynamic.Message, layer int) string {
 		if msg.HasField(field) {
 			value := msg.GetField(field)
 			result.WriteString(fmt.Sprintf("%s    %s = ", indent, field.GetName()))
-			result.WriteString(le.formatValue(value, field, layer+1))
+			result.WriteString(le.formatLuaValue(value, field, indentLevel+1))
 			
 			if i < len(fields)-1 {
 				result.WriteString(",")
@@ -98,9 +111,10 @@ func (le *LuaExporter) generateMessage(msg *dynamic.Message, layer int) string {
 	return result.String()
 }
 
-func (le *LuaExporter) formatValue(value interface{}, field *desc.FieldDescriptor, layer int) string {
+// formatLuaValue formats a field value for Lua output
+func (le *LuaExporter) formatLuaValue(value interface{}, field *desc.FieldDescriptor, indentLevel int) string {
 	if field.IsRepeated() {
-		return le.formatArray(value, field, layer)
+		return le.formatLuaArray(value, field, indentLevel)
 	}
 	
 	switch field.GetType().String() {
@@ -119,7 +133,7 @@ func (le *LuaExporter) formatValue(value interface{}, field *desc.FieldDescripto
 		return "false"
 	case "TYPE_MESSAGE":
 		if msg, ok := value.(*dynamic.Message); ok {
-			return le.generateMessage(msg, layer)
+			return le.generateLuaMessage(msg, indentLevel)
 		}
 	case "TYPE_ENUM":
 		return fmt.Sprintf("%d", value.(int32))
@@ -128,8 +142,9 @@ func (le *LuaExporter) formatValue(value interface{}, field *desc.FieldDescripto
 	return "nil"
 }
 
-func (le *LuaExporter) formatArray(value interface{}, field *desc.FieldDescriptor, layer int) string {
-	indent := strings.Repeat("    ", layer)
+// formatLuaArray formats array values for Lua output
+func (le *LuaExporter) formatLuaArray(value interface{}, field *desc.FieldDescriptor, indentLevel int) string {
+	indent := strings.Repeat("    ", indentLevel)
 	var result strings.Builder
 	
 	result.WriteString("{\n")
@@ -139,7 +154,7 @@ func (le *LuaExporter) formatArray(value interface{}, field *desc.FieldDescripto
 	case []interface{}:
 		for i, item := range v {
 			result.WriteString(fmt.Sprintf("%s    ", indent))
-			result.WriteString(le.formatValue(item, field, layer+1))
+			result.WriteString(le.formatLuaValue(item, field, indentLevel+1))
 			if i < len(v)-1 {
 				result.WriteString(",")
 			}
@@ -151,27 +166,28 @@ func (le *LuaExporter) formatArray(value interface{}, field *desc.FieldDescripto
 	return result.String()
 }
 
-func (le *LuaExporter) formatKey(key StoreKey) string {
+// formatLuaKey formats a store key for Lua output
+func (le *LuaExporter) formatLuaKey(key StoreKey) string {
 	if key.KeyType == KeyTypeInteger {
-		return fmt.Sprintf("%d", key.NumKey)
+		return fmt.Sprintf("%d", key.IntegerValue)
 	}
-	return fmt.Sprintf(`"%s"`, key.StrKey)
+	return fmt.Sprintf(`"%s"`, key.StringValue)
 }
 
 // BinExporter exports configuration data to binary format
 type BinExporter struct{}
 
+// ExportResult exports configuration data to binary format
 func (be *BinExporter) ExportResult(store *ConfigStore) error {
-	descriptor := store.GetDescriptor()
+	descriptor := store.GetMessageDescriptor()
 	fileName := fmt.Sprintf("%s.bin", strings.ToLower(descriptor.GetName()))
 	
 	// Create output directory if it doesn't exist
-	outputDir := "output"
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(DefaultOutputDir, DefaultFilePermissions); err != nil {
 		return fmt.Errorf("failed to create output directory: %v", err)
 	}
 
-	filePath := filepath.Join(outputDir, fileName)
+	filePath := filepath.Join(DefaultOutputDir, fileName)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to create binary file: %v", err)
@@ -179,15 +195,15 @@ func (be *BinExporter) ExportResult(store *ConfigStore) error {
 	defer file.Close()
 
 	// Export all data messages to binary format
-	datas := store.ExportDatas()
-	for _, data := range datas {
-		bytes, err := data.Marshal()
+	messages := store.GetAllMessages()
+	for i, message := range messages {
+		messageBytes, err := message.Marshal()
 		if err != nil {
-			return fmt.Errorf("failed to marshal message: %v", err)
+			return fmt.Errorf("failed to marshal message %d: %v", i, err)
 		}
 		
-		// Write message size first (4 bytes)
-		size := uint32(len(bytes))
+		// Write message size first (4 bytes, big-endian)
+		size := uint32(len(messageBytes))
 		sizeBytes := []byte{
 			byte(size >> 24),
 			byte(size >> 16),
@@ -196,11 +212,11 @@ func (be *BinExporter) ExportResult(store *ConfigStore) error {
 		}
 		
 		if _, err := file.Write(sizeBytes); err != nil {
-			return fmt.Errorf("failed to write message size: %v", err)
+			return fmt.Errorf("failed to write message %d size: %v", i, err)
 		}
 		
-		if _, err := file.Write(bytes); err != nil {
-			return fmt.Errorf("failed to write message data: %v", err)
+		if _, err := file.Write(messageBytes); err != nil {
+			return fmt.Errorf("failed to write message %d data: %v", i, err)
 		}
 	}
 
@@ -211,17 +227,17 @@ func (be *BinExporter) ExportResult(store *ConfigStore) error {
 // JsonExporter exports configuration data to JSON format
 type JsonExporter struct{}
 
+// ExportResult exports configuration data to JSON format
 func (je *JsonExporter) ExportResult(store *ConfigStore) error {
-	descriptor := store.GetDescriptor()
+	descriptor := store.GetMessageDescriptor()
 	fileName := fmt.Sprintf("%s.json", strings.ToLower(descriptor.GetName()))
 	
 	// Create output directory if it doesn't exist
-	outputDir := "output"
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(DefaultOutputDir, DefaultFilePermissions); err != nil {
 		return fmt.Errorf("failed to create output directory: %v", err)
 	}
 
-	filePath := filepath.Join(outputDir, fileName)
+	filePath := filepath.Join(DefaultOutputDir, fileName)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to create json file: %v", err)
@@ -231,12 +247,12 @@ func (je *JsonExporter) ExportResult(store *ConfigStore) error {
 	// Export data to JSON format
 	var jsonData interface{}
 	
-	if store.HasChildren() {
+	if store.HasChildStores() {
 		// Export as map structure
 		result := make(map[string]interface{})
-		keys := store.ExportKeys()
+		keys := store.GetAllKeys()
 		for _, key := range keys {
-			childStore := store.GetConfig(key.String())
+			childStore := store.GetChildStore(key.String())
 			if childStore != nil {
 				childData, err := je.exportStoreToInterface(childStore)
 				if err != nil {
@@ -248,13 +264,13 @@ func (je *JsonExporter) ExportResult(store *ConfigStore) error {
 		jsonData = result
 	} else {
 		// Export as array of messages
-		datas := store.ExportDatas()
-		result := make([]interface{}, 0, len(datas))
+		messages := store.GetAllMessages()
+		result := make([]interface{}, 0, len(messages))
 		
-		for _, data := range datas {
+		for _, message := range messages {
 			// Convert dynamic message to JSON by converting to map
-			msgData := je.dynamicMessageToMap(data)
-			result = append(result, msgData)
+			messageData := je.convertMessageToMap(message)
+			result = append(result, messageData)
 		}
 		jsonData = result
 	}
@@ -270,11 +286,11 @@ func (je *JsonExporter) ExportResult(store *ConfigStore) error {
 }
 
 func (je *JsonExporter) exportStoreToInterface(store *ConfigStore) (interface{}, error) {
-	if store.HasChildren() {
+	if store.HasChildStores() {
 		result := make(map[string]interface{})
-		keys := store.ExportKeys()
+		keys := store.GetAllKeys()
 		for _, key := range keys {
-			childStore := store.GetConfig(key.String())
+			childStore := store.GetChildStore(key.String())
 			if childStore != nil {
 				childData, err := je.exportStoreToInterface(childStore)
 				if err != nil {
@@ -285,16 +301,16 @@ func (je *JsonExporter) exportStoreToInterface(store *ConfigStore) (interface{},
 		}
 		return result, nil
 	} else {
-		data := store.GetData()
-		if data != nil {
-			return je.dynamicMessageToMap(data), nil
+		message := store.GetFirstMessage()
+		if message != nil {
+			return je.convertMessageToMap(message), nil
 		}
 		return nil, nil
 	}
 }
 
-// Helper function to convert dynamic message to map for JSON serialization
-func (je *JsonExporter) dynamicMessageToMap(msg *dynamic.Message) map[string]interface{} {
+// convertMessageToMap converts a dynamic message to map for JSON serialization
+func (je *JsonExporter) convertMessageToMap(msg *dynamic.Message) map[string]interface{} {
 	result := make(map[string]interface{})
 	descriptor := msg.GetMessageDescriptor()
 	
@@ -307,16 +323,17 @@ func (je *JsonExporter) dynamicMessageToMap(msg *dynamic.Message) map[string]int
 		fieldName := field.GetName()
 		
 		if field.IsRepeated() {
-			result[fieldName] = je.convertRepeatedValue(value, field)
+			result[fieldName] = je.convertRepeatedFieldValue(value, field)
 		} else {
-			result[fieldName] = je.convertSingleValue(value, field)
+			result[fieldName] = je.convertSingleFieldValue(value, field)
 		}
 	}
 	
 	return result
 }
 
-func (je *JsonExporter) convertSingleValue(value interface{}, field *desc.FieldDescriptor) interface{} {
+// convertSingleFieldValue converts a single field value for JSON serialization
+func (je *JsonExporter) convertSingleFieldValue(value interface{}, field *desc.FieldDescriptor) interface{} {
 	if value == nil {
 		return nil
 	}
@@ -324,7 +341,7 @@ func (je *JsonExporter) convertSingleValue(value interface{}, field *desc.FieldD
 	switch field.GetType().String() {
 	case "TYPE_MESSAGE":
 		if dmsg, ok := value.(*dynamic.Message); ok {
-			return je.dynamicMessageToMap(dmsg)
+			return je.convertMessageToMap(dmsg)
 		}
 	case "TYPE_ENUM":
 		// Return enum as number
@@ -336,17 +353,18 @@ func (je *JsonExporter) convertSingleValue(value interface{}, field *desc.FieldD
 	return value
 }
 
-func (je *JsonExporter) convertRepeatedValue(value interface{}, field *desc.FieldDescriptor) []interface{} {
+// convertRepeatedFieldValue converts repeated field values for JSON serialization
+func (je *JsonExporter) convertRepeatedFieldValue(value interface{}, field *desc.FieldDescriptor) []interface{} {
 	// Handle slice values
 	switch v := value.(type) {
 	case []interface{}:
 		result := make([]interface{}, len(v))
 		for i, item := range v {
-			result[i] = je.convertSingleValue(item, field)
+			result[i] = je.convertSingleFieldValue(item, field)
 		}
 		return result
 	default:
 		// If it's not a slice, wrap it in a slice
-		return []interface{}{je.convertSingleValue(value, field)}
+		return []interface{}{je.convertSingleFieldValue(value, field)}
 	}
 }

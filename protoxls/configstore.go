@@ -9,81 +9,92 @@ import (
 	"github.com/jhump/protoreflect/dynamic"
 )
 
+// StoreKeyType defines the type of store key
 type StoreKeyType int
 
 const (
+	// KeyTypeInteger represents integer keys
 	KeyTypeInteger StoreKeyType = iota + 1
+	// KeyTypeString represents string keys
 	KeyTypeString
 )
 
+// StoreKey represents a key for indexing configuration data
 type StoreKey struct {
-	KeyType  StoreKeyType
-	NumKey   int64
-	StrKey   string
+	KeyType       StoreKeyType
+	IntegerValue  int64
+	StringValue   string
 }
 
+// String returns the string representation of the store key
 func (k StoreKey) String() string {
 	if k.KeyType == KeyTypeInteger {
-		return fmt.Sprintf("%d", k.NumKey)
+		return fmt.Sprintf("%d", k.IntegerValue)
 	}
-	return k.StrKey
+	return k.StringValue
 }
 
+// ConfigStore manages configuration data with hierarchical storage
 type ConfigStore struct {
-	descriptor *desc.MessageDescriptor
-	datas      []*dynamic.Message
-	stores     map[StoreKey]*ConfigStore
-	keyNames   []string
+	messageDescriptor *desc.MessageDescriptor
+	messages          []*dynamic.Message
+	childStores       map[StoreKey]*ConfigStore
+	keyFieldNames     []string
 }
 
-func NewConfigStore(descriptor *desc.MessageDescriptor) *ConfigStore {
+// NewConfigStore creates a new configuration store
+func NewConfigStore(messageDescriptor *desc.MessageDescriptor) *ConfigStore {
 	return &ConfigStore{
-		descriptor: descriptor,
-		datas:      make([]*dynamic.Message, 0),
-		stores:     make(map[StoreKey]*ConfigStore),
-		keyNames:   make([]string, 0),
+		messageDescriptor: messageDescriptor,
+		messages:          make([]*dynamic.Message, 0),
+		childStores:       make(map[StoreKey]*ConfigStore),
+		keyFieldNames:     make([]string, 0),
 	}
 }
 
-func (cs *ConfigStore) ImportData(data *dynamic.Message) {
-	cs.datas = append(cs.datas, data)
+// AddMessage adds a single message to the store
+func (cs *ConfigStore) AddMessage(message *dynamic.Message) {
+	cs.messages = append(cs.messages, message)
 }
 
-func (cs *ConfigStore) ImportDatas(datas []*dynamic.Message) {
-	cs.datas = append(cs.datas, datas...)
+// AddMessages adds multiple messages to the store
+func (cs *ConfigStore) AddMessages(messages []*dynamic.Message) {
+	cs.messages = append(cs.messages, messages...)
 }
 
-func (cs *ConfigStore) HasChildren() bool {
-	return len(cs.stores) > 0
+// HasChildStores returns true if this store has child stores
+func (cs *ConfigStore) HasChildStores() bool {
+	return len(cs.childStores) > 0
 }
 
-func (cs *ConfigStore) BuildStore(keyNames []string) error {
-	if len(keyNames) == 0 {
+// BuildHierarchicalStore builds a hierarchical store structure using the specified key fields
+func (cs *ConfigStore) BuildHierarchicalStore(keyFieldNames []string) error {
+	if len(keyFieldNames) == 0 {
 		return nil
 	}
 
-	cs.keyNames = keyNames
-	keyName := keyNames[0]
-	remainingKeys := keyNames[1:]
+	cs.keyFieldNames = keyFieldNames
+	currentKeyField := keyFieldNames[0]
+	remainingKeyFields := keyFieldNames[1:]
 
-	for _, data := range cs.datas {
-		key, err := cs.getKeyVal(data, keyName)
+	for _, message := range cs.messages {
+		key, err := cs.extractKeyFromMessage(message, currentKeyField)
 		if err != nil {
-			return fmt.Errorf("failed to get key value: %v", err)
+			return fmt.Errorf("failed to extract key value from field %s: %v", currentKeyField, err)
 		}
 
-		store, exists := cs.stores[key]
+		childStore, exists := cs.childStores[key]
 		if !exists {
-			store = NewConfigStore(cs.descriptor)
-			cs.stores[key] = store
+			childStore = NewConfigStore(cs.messageDescriptor)
+			cs.childStores[key] = childStore
 		}
 
-		store.ImportData(data)
+		childStore.AddMessage(message)
 	}
 
-	// Recursively build child stores
-	for _, store := range cs.stores {
-		if err := store.BuildStore(remainingKeys); err != nil {
+	// Recursively build child stores with remaining key fields
+	for _, childStore := range cs.childStores {
+		if err := childStore.BuildHierarchicalStore(remainingKeyFields); err != nil {
 			return err
 		}
 	}
@@ -91,85 +102,99 @@ func (cs *ConfigStore) BuildStore(keyNames []string) error {
 	return nil
 }
 
-func (cs *ConfigStore) GetData() *dynamic.Message {
-	if len(cs.datas) > 0 {
-		return cs.datas[0]
+// GetFirstMessage returns the first message in the store, or nil if empty
+func (cs *ConfigStore) GetFirstMessage() *dynamic.Message {
+	if len(cs.messages) > 0 {
+		return cs.messages[0]
 	}
 	return nil
 }
 
-func (cs *ConfigStore) GetConfig(key interface{}) *ConfigStore {
-	var storeKey StoreKey
-	switch v := key.(type) {
-	case int:
-		storeKey = StoreKey{KeyType: KeyTypeInteger, NumKey: int64(v)}
-	case int32:
-		storeKey = StoreKey{KeyType: KeyTypeInteger, NumKey: int64(v)}
-	case int64:
-		storeKey = StoreKey{KeyType: KeyTypeInteger, NumKey: v}
-	case string:
-		storeKey = StoreKey{KeyType: KeyTypeString, StrKey: v}
-	default:
+// GetChildStore returns a child store by key, or nil if not found
+func (cs *ConfigStore) GetChildStore(key interface{}) *ConfigStore {
+	storeKey, err := cs.convertToStoreKey(key)
+	if err != nil {
 		return nil
 	}
-
-	return cs.stores[storeKey]
+	return cs.childStores[storeKey]
 }
 
-func (cs *ConfigStore) GetKeyNames() []string {
-	return cs.keyNames
+// convertToStoreKey converts various key types to StoreKey
+func (cs *ConfigStore) convertToStoreKey(key interface{}) (StoreKey, error) {
+	switch v := key.(type) {
+	case int:
+		return StoreKey{KeyType: KeyTypeInteger, IntegerValue: int64(v)}, nil
+	case int32:
+		return StoreKey{KeyType: KeyTypeInteger, IntegerValue: int64(v)}, nil
+	case int64:
+		return StoreKey{KeyType: KeyTypeInteger, IntegerValue: v}, nil
+	case string:
+		return StoreKey{KeyType: KeyTypeString, StringValue: v}, nil
+	default:
+		return StoreKey{}, fmt.Errorf("unsupported key type: %T", key)
+	}
 }
 
-func (cs *ConfigStore) GetDescriptor() *desc.MessageDescriptor {
-	return cs.descriptor
+// GetKeyFieldNames returns the names of the key fields used for indexing
+func (cs *ConfigStore) GetKeyFieldNames() []string {
+	return cs.keyFieldNames
 }
 
-func (cs *ConfigStore) ExportKeys() []StoreKey {
-	keys := make([]StoreKey, 0, len(cs.stores))
-	for key := range cs.stores {
+// GetMessageDescriptor returns the protobuf message descriptor
+func (cs *ConfigStore) GetMessageDescriptor() *desc.MessageDescriptor {
+	return cs.messageDescriptor
+}
+
+// GetAllKeys returns all store keys in this level
+func (cs *ConfigStore) GetAllKeys() []StoreKey {
+	keys := make([]StoreKey, 0, len(cs.childStores))
+	for key := range cs.childStores {
 		keys = append(keys, key)
 	}
 	return keys
 }
 
-func (cs *ConfigStore) ExportDatas() []*dynamic.Message {
-	return cs.datas
+// GetAllMessages returns all messages in this store
+func (cs *ConfigStore) GetAllMessages() []*dynamic.Message {
+	return cs.messages
 }
 
-func (cs *ConfigStore) getKeyVal(data *dynamic.Message, keyName string) (StoreKey, error) {
-	field := cs.descriptor.FindFieldByName(keyName)
+// extractKeyFromMessage extracts a key value from a message field
+func (cs *ConfigStore) extractKeyFromMessage(message *dynamic.Message, fieldName string) (StoreKey, error) {
+	field := cs.messageDescriptor.FindFieldByName(fieldName)
 	if field == nil {
-		return StoreKey{}, fmt.Errorf("field %s not found", keyName)
+		return StoreKey{}, fmt.Errorf("field %s not found in message descriptor", fieldName)
 	}
 
-	value := data.GetField(field)
+	value := message.GetField(field)
 	if value == nil {
-		return StoreKey{}, fmt.Errorf("field %s is nil", keyName)
+		return StoreKey{}, fmt.Errorf("field %s has nil value", fieldName)
 	}
 
 	switch field.GetType().String() {
 	case "TYPE_INT32", "TYPE_SINT32", "TYPE_SFIXED32", "TYPE_UINT32", "TYPE_FIXED32":
 		if v, ok := value.(int32); ok {
-			return StoreKey{KeyType: KeyTypeInteger, NumKey: int64(v)}, nil
+			return StoreKey{KeyType: KeyTypeInteger, IntegerValue: int64(v)}, nil
 		}
 	case "TYPE_INT64", "TYPE_SINT64", "TYPE_SFIXED64", "TYPE_UINT64", "TYPE_FIXED64":
 		if v, ok := value.(int64); ok {
-			return StoreKey{KeyType: KeyTypeInteger, NumKey: v}, nil
+			return StoreKey{KeyType: KeyTypeInteger, IntegerValue: v}, nil
 		}
 	case "TYPE_STRING":
 		if v, ok := value.(string); ok {
-			// Try to parse as number first
+			// Try to parse as number first for numeric string keys
 			if num, err := strconv.ParseInt(v, 10, 64); err == nil {
-				return StoreKey{KeyType: KeyTypeInteger, NumKey: num}, nil
+				return StoreKey{KeyType: KeyTypeInteger, IntegerValue: num}, nil
 			}
-			return StoreKey{KeyType: KeyTypeString, StrKey: v}, nil
+			return StoreKey{KeyType: KeyTypeString, StringValue: v}, nil
 		}
 	}
 
-	return StoreKey{}, fmt.Errorf("unsupported key type for field %s", keyName)
+	return StoreKey{}, fmt.Errorf("unsupported key type %s for field %s", field.GetType().String(), fieldName)
 }
 
-// Split utility function
+
+// Split utility function for splitting delimited strings
 func Split(s, sep string) []string {
 	if s == "" {
 		return []string{}
