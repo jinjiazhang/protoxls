@@ -122,6 +122,8 @@ func (cs *ConfigStore) GetChildStore(key interface{}) *ConfigStore {
 // convertToStoreKey converts various key types to StoreKey
 func (cs *ConfigStore) convertToStoreKey(key interface{}) (StoreKey, error) {
 	switch v := key.(type) {
+	case StoreKey:
+		return v, nil
 	case int:
 		return StoreKey{KeyType: KeyTypeInteger, IntegerValue: int64(v)}, nil
 	case int32:

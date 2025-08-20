@@ -1,2 +1,4 @@
-protoxls.exe
+.vscode
+output
 /bin/protoxls
+/bin/protoxls.exe

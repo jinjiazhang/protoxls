@@ -69,7 +69,7 @@ func (le *LuaExporter) generateLuaCode(store *ConfigStore, indentLevel int) stri
 		result.WriteString("{\n")
 		keys := store.GetAllKeys()
 		for i, key := range keys {
-			childStore := store.GetChildStore(key.String())
+			childStore := store.GetChildStore(key)
 			if childStore != nil {
 				result.WriteString(fmt.Sprintf("%s    [%s] = ", indent, le.formatLuaKey(key)))
 				result.WriteString(le.generateLuaCode(childStore, indentLevel+1))
@@ -276,7 +276,7 @@ func (je *JsonExporter) ExportResult(store *ConfigStore) error {
 		result := make(map[string]interface{})
 		keys := store.GetAllKeys()
 		for _, key := range keys {
-			childStore := store.GetChildStore(key.String())
+			childStore := store.GetChildStore(key)
 			if childStore != nil {
 				childData, err := je.exportStoreToInterface(childStore)
 				if err != nil {
@@ -314,7 +314,7 @@ func (je *JsonExporter) exportStoreToInterface(store *ConfigStore) (interface{},
 		result := make(map[string]interface{})
 		keys := store.GetAllKeys()
 		for _, key := range keys {
-			childStore := store.GetChildStore(key.String())
+			childStore := store.GetChildStore(key)
 			if childStore != nil {
 				childData, err := je.exportStoreToInterface(childStore)
 				if err != nil {
