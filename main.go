@@ -11,12 +11,12 @@ import (
 
 func main() {
 	// Proto file and import paths
-	protoFilePath := flag.String("proto", "", "Path to the .proto file to parse")
+	protoFilePath := flag.String("proto", "scheme.proto", "Path to the .proto file to parse")
 	importPaths := flag.String("I", ".", "Import paths for .proto files (colon-separated)")
 
 	// Output format flags (similar to protoc)
 	luaOut := flag.String("lua_out", "", "Generate Lua files in the specified directory")
-	jsonOut := flag.String("json_out", "", "Generate JSON files in the specified directory") 
+	jsonOut := flag.String("json_out", "", "Generate JSON files in the specified directory")
 	binOut := flag.String("bin_out", "", "Generate binary files in the specified directory")
 
 	flag.Usage = func() {
