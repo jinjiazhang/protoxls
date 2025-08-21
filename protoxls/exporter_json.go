@@ -17,7 +17,7 @@ type JsonExporter struct {
 
 // ExportResult exports configuration data to JSON format
 func (je *JsonExporter) ExportResult(store *TableStore) error {
-	fileName := GetPreferredFileName(store, ".json")
+	fileName := GetExportName(store, ".json")
 	
 	// Use custom output directory or default
 	outputDir := je.OutputDir

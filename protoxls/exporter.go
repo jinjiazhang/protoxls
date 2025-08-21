@@ -17,18 +17,24 @@ type Exporter interface {
 	ExportResult(store *TableStore) error
 }
 
-// GetPreferredFileName returns the preferred filename for export, prioritizing table option
-func GetPreferredFileName(store *TableStore, extension string) string {
+// GetExportName returns the filename for export, prioritizing table option
+func GetExportName(store *TableStore, extension string) string {
+	tableName := GetTableName(store)
+	return tableName + extension
+}
+
+// GetTableName returns the preferred table name, prioritizing table option
+func GetTableName(store *TableStore) string {
 	descriptor := store.GetMessageDescriptor()
 	options := descriptor.GetMessageOptions()
 	
 	// Try to get table option first
 	if options != nil {
 		if tableName, ok := proto.GetExtension(options, E_Table).(string); ok && tableName != "" {
-			return tableName + extension
+			return tableName
 		}
 	}
 	
 	// Fallback to descriptor name
-	return strings.ToLower(descriptor.GetName()) + extension
+	return strings.ToLower(descriptor.GetName())
 }

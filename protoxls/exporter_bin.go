@@ -13,7 +13,7 @@ type BinExporter struct {
 
 // ExportResult exports configuration data to binary format
 func (be *BinExporter) ExportResult(store *TableStore) error {
-	fileName := GetPreferredFileName(store, ".bin")
+	fileName := GetExportName(store, ".bin")
 	
 	// Use custom output directory or default
 	outputDir := be.OutputDir

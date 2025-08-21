@@ -17,7 +17,7 @@ type LuaExporter struct {
 
 // ExportResult exports configuration data to Lua format
 func (le *LuaExporter) ExportResult(store *TableStore) error {
-	fileName := GetPreferredFileName(store, ".lua")
+	fileName := GetExportName(store, ".lua")
 	
 	// Use custom output directory or default
 	outputDir := le.OutputDir
@@ -38,13 +38,16 @@ func (le *LuaExporter) ExportResult(store *TableStore) error {
 	defer file.Close()
 
 	// Export data to Lua format as a complete table with each key-value pair on one line
+	// Get table name using shared function
+	tableName := GetTableName(store)
+	
 	if store.HasChildStores() {
 		// Export as table structure with formatted output
 		keys := store.GetAllKeys()
 		
-		// Write opening brace
-		if _, err := file.WriteString("{\n"); err != nil {
-			return fmt.Errorf("failed to write opening brace: %v", err)
+		// Write table name and opening brace
+		if _, err := file.WriteString(fmt.Sprintf("%s = {\n", tableName)); err != nil {
+			return fmt.Errorf("failed to write table declaration: %v", err)
 		}
 		
 		for i, key := range keys {
@@ -74,9 +77,9 @@ func (le *LuaExporter) ExportResult(store *TableStore) error {
 		// Export each message as one line in a table
 		messages := store.GetAllMessages()
 		
-		// Write opening brace
-		if _, err := file.WriteString("{\n"); err != nil {
-			return fmt.Errorf("failed to write opening brace: %v", err)
+		// Write table name and opening brace
+		if _, err := file.WriteString(fmt.Sprintf("%s = {\n", tableName)); err != nil {
+			return fmt.Errorf("failed to write table declaration: %v", err)
 		}
 		
 		for i, message := range messages {
