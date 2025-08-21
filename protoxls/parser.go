@@ -291,9 +291,9 @@ func parseExcelToTableStore(msgDesc *desc.MessageDescriptor) (*TableStore, error
 	}
 
 	// Extract optional key configuration
-	keyConfig := ""
-	if key, ok := proto.GetExtension(options, E_Key).(string); ok {
-		keyConfig = key
+	keysConfig := ""
+	if keys, ok := proto.GetExtension(options, E_Keys).(string); ok {
+		keysConfig = keys
 	}
 
 	excelFile, err := excelize.OpenFile(excelPath)
@@ -335,8 +335,8 @@ func parseExcelToTableStore(msgDesc *desc.MessageDescriptor) (*TableStore, error
 	store.AddMessages(messages)
 
 	// Build store with keys if specified
-	if keyConfig != "" {
-		keyNames := strings.Split(keyConfig, ";")
+	if keysConfig != "" {
+		keyNames := strings.Split(keysConfig, ";")
 		if err := store.BuildHierarchicalStore(keyNames); err != nil {
 			return nil, fmt.Errorf("failed to build store with keys: %v", err)
 		}

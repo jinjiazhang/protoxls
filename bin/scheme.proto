@@ -5,8 +5,8 @@ import "option.proto";
 message RoleScheme {
 	option (excel) = "角色数据表.xlsx";
 	option (sheet) = "角色数据";
-	option (name) = "role_table";
-	option (key) = "roleId";
+	option (table) = "role_table";
+	option (keys) = "roleId";
 
 	message PropScheme {
 		int32 attack = 1 [(text) = "攻击"];
