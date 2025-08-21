@@ -258,13 +258,7 @@ func ParseProtoFiles(protoFile string, importPaths []string, exportConfig *Expor
 
 	for _, fd := range fileDescriptors {
 		for _, md := range fd.GetMessageTypes() {
-			tableConfig := parseTableSchema(md)
-			if tableConfig == nil {
-				log.Printf("Skipping message %s: no xls config found", md.GetName())
-				continue
-			}
-
-			store, err := parseExcelToTableStore(tableConfig, md)
+			store, err := parseExcelToTableStore(md)
 			if err != nil {
 				return fmt.Errorf("failed to generate table for message %s: %v", md.GetName(), err)
 			}
@@ -277,20 +271,44 @@ func ParseProtoFiles(protoFile string, importPaths []string, exportConfig *Expor
 }
 
 // parseExcelToTableStore parses Excel file data into TableStore
-func parseExcelToTableStore(tableConfig *TableSchema, msgDesc *desc.MessageDescriptor) (*TableStore, error) {
-	excelFile, err := excelize.OpenFile(tableConfig.Excel)
+func parseExcelToTableStore(msgDesc *desc.MessageDescriptor) (*TableStore, error) {
+	// Parse table configuration from message options
+	options := msgDesc.GetMessageOptions()
+	if options == nil {
+		return nil, fmt.Errorf("message %s has no options", msgDesc.GetName())
+	}
+
+	// Extract Excel file path
+	excelPath, ok := proto.GetExtension(options, E_Excel).(string)
+	if !ok || excelPath == "" {
+		return nil, fmt.Errorf("message %s missing excel option", msgDesc.GetName())
+	}
+
+	// Extract sheet name
+	sheetName, ok := proto.GetExtension(options, E_Sheet).(string)
+	if !ok || sheetName == "" {
+		return nil, fmt.Errorf("message %s missing sheet option", msgDesc.GetName())
+	}
+
+	// Extract optional key configuration
+	keyConfig := ""
+	if key, ok := proto.GetExtension(options, E_Key).(string); ok {
+		keyConfig = key
+	}
+
+	excelFile, err := excelize.OpenFile(excelPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open excel file %s: %v", tableConfig.Excel, err)
+		return nil, fmt.Errorf("failed to open excel file %s: %v", excelPath, err)
 	}
 	defer excelFile.Close()
 
-	rows, err := excelFile.GetRows(tableConfig.Sheet)
+	rows, err := excelFile.GetRows(sheetName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get sheet %s: %v", tableConfig.Sheet, err)
+		return nil, fmt.Errorf("failed to get sheet %s: %v", sheetName, err)
 	}
 
 	if len(rows) < 2 {
-		return nil, fmt.Errorf("sheet %s has insufficient data (need at least header + 1 data row)", tableConfig.Sheet)
+		return nil, fmt.Errorf("sheet %s has insufficient data (need at least header + 1 data row)", sheetName)
 	}
 
 	// Build header map
@@ -317,8 +335,8 @@ func parseExcelToTableStore(tableConfig *TableSchema, msgDesc *desc.MessageDescr
 	store.AddMessages(messages)
 
 	// Build store with keys if specified
-	if tableConfig.Key != "" {
-		keyNames := strings.Split(tableConfig.Key, ";")
+	if keyConfig != "" {
+		keyNames := strings.Split(keyConfig, ";")
 		if err := store.BuildHierarchicalStore(keyNames); err != nil {
 			return nil, fmt.Errorf("failed to build store with keys: %v", err)
 		}
