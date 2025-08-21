@@ -39,6 +39,7 @@ type TableStore struct {
 	messageDescriptor *desc.MessageDescriptor
 	messages          []*dynamic.Message
 	childStores       map[StoreKey]*TableStore
+	keyOrder          []StoreKey // Preserves insertion order of keys
 	keyFieldNames     []string
 }
 
@@ -48,6 +49,7 @@ func NewTableStore(messageDescriptor *desc.MessageDescriptor) *TableStore {
 		messageDescriptor: messageDescriptor,
 		messages:          make([]*dynamic.Message, 0),
 		childStores:       make(map[StoreKey]*TableStore),
+		keyOrder:          make([]StoreKey, 0),
 		keyFieldNames:     make([]string, 0),
 	}
 }
@@ -87,6 +89,7 @@ func (cs *TableStore) BuildHierarchicalStore(keyFieldNames []string) error {
 		if !exists {
 			childStore = NewTableStore(cs.messageDescriptor)
 			cs.childStores[key] = childStore
+			cs.keyOrder = append(cs.keyOrder, key) // Record insertion order
 		}
 
 		childStore.AddMessage(message)
@@ -147,13 +150,9 @@ func (cs *TableStore) GetMessageDescriptor() *desc.MessageDescriptor {
 	return cs.messageDescriptor
 }
 
-// GetAllKeys returns all store keys in this level
+// GetAllKeys returns all store keys in this level in insertion order
 func (cs *TableStore) GetAllKeys() []StoreKey {
-	keys := make([]StoreKey, 0, len(cs.childStores))
-	for key := range cs.childStores {
-		keys = append(keys, key)
-	}
-	return keys
+	return cs.keyOrder
 }
 
 // GetAllMessages returns all messages in this store
