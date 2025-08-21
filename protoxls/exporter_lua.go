@@ -17,8 +17,7 @@ type LuaExporter struct {
 
 // ExportResult exports configuration data to Lua format
 func (le *LuaExporter) ExportResult(store *TableStore) error {
-	descriptor := store.GetMessageDescriptor()
-	fileName := fmt.Sprintf("%s.lua", strings.ToLower(descriptor.GetName()))
+	fileName := GetPreferredFileName(store, ".lua")
 	
 	// Use custom output directory or default
 	outputDir := le.OutputDir

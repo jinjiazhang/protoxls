@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
@@ -18,8 +17,7 @@ type JsonExporter struct {
 
 // ExportResult exports configuration data to JSON format
 func (je *JsonExporter) ExportResult(store *TableStore) error {
-	descriptor := store.GetMessageDescriptor()
-	fileName := fmt.Sprintf("%s.json", strings.ToLower(descriptor.GetName()))
+	fileName := GetPreferredFileName(store, ".json")
 	
 	// Use custom output directory or default
 	outputDir := je.OutputDir

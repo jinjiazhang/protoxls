@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // BinExporter exports configuration data to binary format
@@ -14,8 +13,7 @@ type BinExporter struct {
 
 // ExportResult exports configuration data to binary format
 func (be *BinExporter) ExportResult(store *TableStore) error {
-	descriptor := store.GetMessageDescriptor()
-	fileName := fmt.Sprintf("%s.bin", strings.ToLower(descriptor.GetName()))
+	fileName := GetPreferredFileName(store, ".bin")
 	
 	// Use custom output directory or default
 	outputDir := be.OutputDir
