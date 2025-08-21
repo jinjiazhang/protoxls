@@ -254,7 +254,7 @@ func ParseProtoFiles(protoFile string, importPaths []string, exportConfig *Expor
 		return fmt.Errorf("failed to parse proto file %s: %v", protoFile, err)
 	}
 
-	var configStores []*DataStore
+	var configStores []*TableStore
 
 	for _, fd := range fileDescriptors {
 		for _, md := range fd.GetMessageTypes() {
@@ -264,7 +264,7 @@ func ParseProtoFiles(protoFile string, importPaths []string, exportConfig *Expor
 				continue
 			}
 
-			store, err := parseExcelToDataStore(tableConfig, md)
+			store, err := parseExcelToTableStore(tableConfig, md)
 			if err != nil {
 				return fmt.Errorf("failed to generate table for message %s: %v", md.GetName(), err)
 			}
@@ -273,11 +273,11 @@ func ParseProtoFiles(protoFile string, importPaths []string, exportConfig *Expor
 	}
 
 	// Export results to specified formats
-	return ExportDataStores(configStores, exportConfig)
+	return ExportTableStores(configStores, exportConfig)
 }
 
-// parseExcelToDataStore parses Excel file data into DataStore
-func parseExcelToDataStore(tableConfig *TableSchema, msgDesc *desc.MessageDescriptor) (*DataStore, error) {
+// parseExcelToTableStore parses Excel file data into TableStore
+func parseExcelToTableStore(tableConfig *TableSchema, msgDesc *desc.MessageDescriptor) (*TableStore, error) {
 	excelFile, err := excelize.OpenFile(tableConfig.Excel)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open excel file %s: %v", tableConfig.Excel, err)
@@ -301,7 +301,7 @@ func parseExcelToDataStore(tableConfig *TableSchema, msgDesc *desc.MessageDescri
 	}
 
 	// Create config store
-	store := NewDataStore(msgDesc)
+	store := NewTableStore(msgDesc)
 
 	// Parse data rows
 	messages := make([]*dynamic.Message, 0, len(rows)-1)
@@ -328,8 +328,8 @@ func parseExcelToDataStore(tableConfig *TableSchema, msgDesc *desc.MessageDescri
 	return store, nil
 }
 
-// ExportDataStores exports configuration stores to specified formats
-func ExportDataStores(stores []*DataStore, exportConfig *ExportConfig) error {
+// ExportTableStores exports configuration stores to specified formats
+func ExportTableStores(stores []*TableStore, exportConfig *ExportConfig) error {
 	var exporters []Exporter
 
 	// Add exporters based on configuration

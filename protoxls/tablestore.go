@@ -34,41 +34,41 @@ func (k StoreKey) String() string {
 	return k.StringValue
 }
 
-// DataStore manages configuration data with hierarchical storage
-type DataStore struct {
+// TableStore manages configuration data with hierarchical storage
+type TableStore struct {
 	messageDescriptor *desc.MessageDescriptor
 	messages          []*dynamic.Message
-	childStores       map[StoreKey]*DataStore
+	childStores       map[StoreKey]*TableStore
 	keyFieldNames     []string
 }
 
-// NewDataStore creates a new configuration store
-func NewDataStore(messageDescriptor *desc.MessageDescriptor) *DataStore {
-	return &DataStore{
+// NewTableStore creates a new configuration store
+func NewTableStore(messageDescriptor *desc.MessageDescriptor) *TableStore {
+	return &TableStore{
 		messageDescriptor: messageDescriptor,
 		messages:          make([]*dynamic.Message, 0),
-		childStores:       make(map[StoreKey]*DataStore),
+		childStores:       make(map[StoreKey]*TableStore),
 		keyFieldNames:     make([]string, 0),
 	}
 }
 
 // AddMessage adds a single message to the store
-func (cs *DataStore) AddMessage(message *dynamic.Message) {
+func (cs *TableStore) AddMessage(message *dynamic.Message) {
 	cs.messages = append(cs.messages, message)
 }
 
 // AddMessages adds multiple messages to the store
-func (cs *DataStore) AddMessages(messages []*dynamic.Message) {
+func (cs *TableStore) AddMessages(messages []*dynamic.Message) {
 	cs.messages = append(cs.messages, messages...)
 }
 
 // HasChildStores returns true if this store has child stores
-func (cs *DataStore) HasChildStores() bool {
+func (cs *TableStore) HasChildStores() bool {
 	return len(cs.childStores) > 0
 }
 
 // BuildHierarchicalStore builds a hierarchical store structure using the specified key fields
-func (cs *DataStore) BuildHierarchicalStore(keyFieldNames []string) error {
+func (cs *TableStore) BuildHierarchicalStore(keyFieldNames []string) error {
 	if len(keyFieldNames) == 0 {
 		return nil
 	}
@@ -85,7 +85,7 @@ func (cs *DataStore) BuildHierarchicalStore(keyFieldNames []string) error {
 
 		childStore, exists := cs.childStores[key]
 		if !exists {
-			childStore = NewDataStore(cs.messageDescriptor)
+			childStore = NewTableStore(cs.messageDescriptor)
 			cs.childStores[key] = childStore
 		}
 
@@ -103,7 +103,7 @@ func (cs *DataStore) BuildHierarchicalStore(keyFieldNames []string) error {
 }
 
 // GetFirstMessage returns the first message in the store, or nil if empty
-func (cs *DataStore) GetFirstMessage() *dynamic.Message {
+func (cs *TableStore) GetFirstMessage() *dynamic.Message {
 	if len(cs.messages) > 0 {
 		return cs.messages[0]
 	}
@@ -111,7 +111,7 @@ func (cs *DataStore) GetFirstMessage() *dynamic.Message {
 }
 
 // GetChildStore returns a child store by key, or nil if not found
-func (cs *DataStore) GetChildStore(key interface{}) *DataStore {
+func (cs *TableStore) GetChildStore(key interface{}) *TableStore {
 	storeKey, err := cs.convertToStoreKey(key)
 	if err != nil {
 		return nil
@@ -120,7 +120,7 @@ func (cs *DataStore) GetChildStore(key interface{}) *DataStore {
 }
 
 // convertToStoreKey converts various key types to StoreKey
-func (cs *DataStore) convertToStoreKey(key interface{}) (StoreKey, error) {
+func (cs *TableStore) convertToStoreKey(key interface{}) (StoreKey, error) {
 	switch v := key.(type) {
 	case StoreKey:
 		return v, nil
@@ -138,17 +138,17 @@ func (cs *DataStore) convertToStoreKey(key interface{}) (StoreKey, error) {
 }
 
 // GetKeyFieldNames returns the names of the key fields used for indexing
-func (cs *DataStore) GetKeyFieldNames() []string {
+func (cs *TableStore) GetKeyFieldNames() []string {
 	return cs.keyFieldNames
 }
 
 // GetMessageDescriptor returns the protobuf message descriptor
-func (cs *DataStore) GetMessageDescriptor() *desc.MessageDescriptor {
+func (cs *TableStore) GetMessageDescriptor() *desc.MessageDescriptor {
 	return cs.messageDescriptor
 }
 
 // GetAllKeys returns all store keys in this level
-func (cs *DataStore) GetAllKeys() []StoreKey {
+func (cs *TableStore) GetAllKeys() []StoreKey {
 	keys := make([]StoreKey, 0, len(cs.childStores))
 	for key := range cs.childStores {
 		keys = append(keys, key)
@@ -157,12 +157,12 @@ func (cs *DataStore) GetAllKeys() []StoreKey {
 }
 
 // GetAllMessages returns all messages in this store
-func (cs *DataStore) GetAllMessages() []*dynamic.Message {
+func (cs *TableStore) GetAllMessages() []*dynamic.Message {
 	return cs.messages
 }
 
 // extractKeyFromMessage extracts a key value from a message field
-func (cs *DataStore) extractKeyFromMessage(message *dynamic.Message, fieldName string) (StoreKey, error) {
+func (cs *TableStore) extractKeyFromMessage(message *dynamic.Message, fieldName string) (StoreKey, error) {
 	field := cs.messageDescriptor.FindFieldByName(fieldName)
 	if field == nil {
 		return StoreKey{}, fmt.Errorf("field %s not found in message descriptor", fieldName)

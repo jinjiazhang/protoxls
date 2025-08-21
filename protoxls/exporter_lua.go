@@ -16,7 +16,7 @@ type LuaExporter struct {
 }
 
 // ExportResult exports configuration data to Lua format
-func (le *LuaExporter) ExportResult(store *DataStore) error {
+func (le *LuaExporter) ExportResult(store *TableStore) error {
 	descriptor := store.GetMessageDescriptor()
 	fileName := fmt.Sprintf("%s.lua", strings.ToLower(descriptor.GetName()))
 	
@@ -48,7 +48,7 @@ func (le *LuaExporter) ExportResult(store *DataStore) error {
 }
 
 // generateLuaCode generates Lua code for the configuration data
-func (le *LuaExporter) generateLuaCode(store *DataStore, indentLevel int) string {
+func (le *LuaExporter) generateLuaCode(store *TableStore, indentLevel int) string {
 	indent := strings.Repeat("    ", indentLevel)
 	var result strings.Builder
 

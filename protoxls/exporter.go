@@ -9,5 +9,5 @@ const (
 
 // Exporter defines the interface for exporting configuration data
 type Exporter interface {
-	ExportResult(store *DataStore) error
+	ExportResult(store *TableStore) error
 }

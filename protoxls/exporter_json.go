@@ -17,7 +17,7 @@ type JsonExporter struct {
 }
 
 // ExportResult exports configuration data to JSON format
-func (je *JsonExporter) ExportResult(store *DataStore) error {
+func (je *JsonExporter) ExportResult(store *TableStore) error {
 	descriptor := store.GetMessageDescriptor()
 	fileName := fmt.Sprintf("%s.json", strings.ToLower(descriptor.GetName()))
 	
@@ -80,7 +80,7 @@ func (je *JsonExporter) ExportResult(store *DataStore) error {
 	return nil
 }
 
-func (je *JsonExporter) exportStoreToInterface(store *DataStore) (interface{}, error) {
+func (je *JsonExporter) exportStoreToInterface(store *TableStore) (interface{}, error) {
 	if store.HasChildStores() {
 		result := make(map[string]interface{})
 		keys := store.GetAllKeys()
