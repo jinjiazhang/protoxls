@@ -15,7 +15,9 @@ import (
 
 const (
 	// DefaultArraySeparator is the default separator for array values in cells
-	DefaultArraySeparator = ";"
+	DefaultArraySeparator = ","
+	// ColumnNameSeparator is the separator used between base prefix and column name
+	ColumnNameSeparator = "."
 )
 
 // buildFieldColumnName builds the column name for a field with optional base prefix
@@ -31,7 +33,7 @@ func buildFieldColumnName(field *desc.FieldDescriptor, basePrefix string) string
 		columnName = field.GetName()
 	}
 	if basePrefix != "" {
-		return basePrefix + columnName
+		return basePrefix + ColumnNameSeparator + columnName
 	}
 	return columnName
 }
