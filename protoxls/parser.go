@@ -254,7 +254,7 @@ func ParseProtoFiles(protoFile string, importPaths []string, exportConfig *Expor
 		return fmt.Errorf("failed to parse proto file %s: %v", protoFile, err)
 	}
 
-	var configStores []*ConfigStore
+	var configStores []*DataStore
 
 	for _, fd := range fileDescriptors {
 		for _, md := range fd.GetMessageTypes() {
@@ -264,7 +264,7 @@ func ParseProtoFiles(protoFile string, importPaths []string, exportConfig *Expor
 				continue
 			}
 
-			store, err := parseExcelToConfigStore(tableConfig, md)
+			store, err := parseExcelToDataStore(tableConfig, md)
 			if err != nil {
 				return fmt.Errorf("failed to generate table for message %s: %v", md.GetName(), err)
 			}
@@ -273,11 +273,11 @@ func ParseProtoFiles(protoFile string, importPaths []string, exportConfig *Expor
 	}
 
 	// Export results to specified formats
-	return ExportConfigStores(configStores, exportConfig)
+	return ExportDataStores(configStores, exportConfig)
 }
 
-// parseExcelToConfigStore parses Excel file data into ConfigStore
-func parseExcelToConfigStore(tableConfig *TableSchema, msgDesc *desc.MessageDescriptor) (*ConfigStore, error) {
+// parseExcelToDataStore parses Excel file data into DataStore
+func parseExcelToDataStore(tableConfig *TableSchema, msgDesc *desc.MessageDescriptor) (*DataStore, error) {
 	excelFile, err := excelize.OpenFile(tableConfig.Excel)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open excel file %s: %v", tableConfig.Excel, err)
@@ -301,7 +301,7 @@ func parseExcelToConfigStore(tableConfig *TableSchema, msgDesc *desc.MessageDesc
 	}
 
 	// Create config store
-	store := NewConfigStore(msgDesc)
+	store := NewDataStore(msgDesc)
 
 	// Parse data rows
 	messages := make([]*dynamic.Message, 0, len(rows)-1)
@@ -328,8 +328,8 @@ func parseExcelToConfigStore(tableConfig *TableSchema, msgDesc *desc.MessageDesc
 	return store, nil
 }
 
-// ExportConfigStores exports configuration stores to specified formats
-func ExportConfigStores(stores []*ConfigStore, exportConfig *ExportConfig) error {
+// ExportDataStores exports configuration stores to specified formats
+func ExportDataStores(stores []*DataStore, exportConfig *ExportConfig) error {
 	var exporters []Exporter
 
 	// Add exporters based on configuration
