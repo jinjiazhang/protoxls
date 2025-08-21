@@ -155,22 +155,113 @@ func (le *LuaExporter) formatLuaArray(value interface{}, field *desc.FieldDescri
 	indent := strings.Repeat("    ", indentLevel)
 	var result strings.Builder
 	
-	result.WriteString("{\n")
+	v, ok := value.([]interface{})
+	if !ok {
+		return "{}"
+	}
 	
-	// Handle slice/array values
-	switch v := value.(type) {
-	case []interface{}:
+	if len(v) == 0 {
+		return "{}"
+	}
+	
+	// Determine element type and format accordingly
+	fieldType := field.GetType().String()
+	
+	switch fieldType {
+	case "TYPE_INT32", "TYPE_SINT32", "TYPE_SFIXED32", "TYPE_UINT32", "TYPE_FIXED32":
+		// Primitive types: use inline format {val1, val2, val3}
+		result.WriteString("{")
+		for i, item := range v {
+			result.WriteString(fmt.Sprintf("%d", item.(int32)))
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("}")
+		
+	case "TYPE_INT64", "TYPE_SINT64", "TYPE_SFIXED64", "TYPE_UINT64", "TYPE_FIXED64":
+		result.WriteString("{")
+		for i, item := range v {
+			result.WriteString(fmt.Sprintf("%d", item.(int64)))
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("}")
+		
+	case "TYPE_FLOAT", "TYPE_DOUBLE":
+		result.WriteString("{")
+		for i, item := range v {
+			result.WriteString(fmt.Sprintf("%f", item))
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("}")
+		
+	case "TYPE_STRING":
+		result.WriteString("{")
+		for i, item := range v {
+			result.WriteString(fmt.Sprintf(`"%s"`, strings.ReplaceAll(item.(string), `"`, `\"`)))
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("}")
+		
+	case "TYPE_BOOL":
+		result.WriteString("{")
+		for i, item := range v {
+			if item.(bool) {
+				result.WriteString("true")
+			} else {
+				result.WriteString("false")
+			}
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("}")
+		
+	case "TYPE_ENUM":
+		result.WriteString("{")
+		for i, item := range v {
+			result.WriteString(fmt.Sprintf("%d", item.(int32)))
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("}")
+		
+	case "TYPE_MESSAGE":
+		// Complex types: use multi-line format with proper indentation
+		result.WriteString("{\n")
 		for i, item := range v {
 			result.WriteString(fmt.Sprintf("%s    ", indent))
-			result.WriteString(le.formatLuaValue(item, field, indentLevel+1))
+			if msg, ok := item.(*dynamic.Message); ok {
+				result.WriteString(le.generateLuaMessage(msg, indentLevel+1))
+			} else {
+				result.WriteString("nil")
+			}
 			if i < len(v)-1 {
 				result.WriteString(",")
 			}
 			result.WriteString("\n")
 		}
+		result.WriteString(fmt.Sprintf("%s}", indent))
+		
+	default:
+		// Fallback: treat as strings
+		result.WriteString("{")
+		for i, item := range v {
+			result.WriteString(fmt.Sprintf(`"%v"`, item))
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("}")
 	}
 	
-	result.WriteString(fmt.Sprintf("%s}", indent))
 	return result.String()
 }
 
