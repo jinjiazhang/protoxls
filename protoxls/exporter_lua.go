@@ -37,9 +37,67 @@ func (le *LuaExporter) ExportResult(store *TableStore) error {
 	}
 	defer file.Close()
 
-	luaCode := le.generateLuaCode(store, 0)
-	if _, err = file.WriteString(luaCode); err != nil {
-		return fmt.Errorf("failed to write lua code: %v", err)
+	// Export data to Lua format as a complete table with each key-value pair on one line
+	if store.HasChildStores() {
+		// Export as table structure with formatted output
+		keys := store.GetAllKeys()
+		
+		// Write opening brace
+		if _, err := file.WriteString("{\n"); err != nil {
+			return fmt.Errorf("failed to write opening brace: %v", err)
+		}
+		
+		for i, key := range keys {
+			childStore := store.GetChildStore(key)
+			if childStore != nil {
+				keyStr := le.formatLuaKey(key)
+				childCode := le.generateLuaCode(childStore, 0)
+				
+				// Write key-value pair with proper formatting
+				lineCode := fmt.Sprintf("    [%s] = %s", keyStr, childCode)
+				if i < len(keys)-1 {
+					lineCode += ","
+				}
+				lineCode += "\n"
+				
+				if _, err := file.WriteString(lineCode); err != nil {
+					return fmt.Errorf("failed to write lua code: %v", err)
+				}
+			}
+		}
+		
+		// Write closing brace
+		if _, err := file.WriteString("}"); err != nil {
+			return fmt.Errorf("failed to write closing brace: %v", err)
+		}
+	} else {
+		// Export each message as one line in a table
+		messages := store.GetAllMessages()
+		
+		// Write opening brace
+		if _, err := file.WriteString("{\n"); err != nil {
+			return fmt.Errorf("failed to write opening brace: %v", err)
+		}
+		
+		for i, message := range messages {
+			messageCode := le.generateLuaMessage(message, 0)
+			
+			// Write this message as one line with proper formatting
+			lineCode := fmt.Sprintf("    %s", messageCode)
+			if i < len(messages)-1 {
+				lineCode += ","
+			}
+			lineCode += "\n"
+			
+			if _, err := file.WriteString(lineCode); err != nil {
+				return fmt.Errorf("failed to write lua code: %v", err)
+			}
+		}
+		
+		// Write closing brace
+		if _, err := file.WriteString("}"); err != nil {
+			return fmt.Errorf("failed to write closing brace: %v", err)
+		}
 	}
 
 	fmt.Printf("Exported Lua file: %s\n", filePath)
@@ -80,28 +138,26 @@ func (le *LuaExporter) generateLuaCode(store *TableStore, indentLevel int) strin
 
 // generateLuaMessage generates Lua code for a protobuf message
 func (le *LuaExporter) generateLuaMessage(msg *dynamic.Message, indentLevel int) string {
-	indent := strings.Repeat("    ", indentLevel)
 	var result strings.Builder
 	
-	result.WriteString("{\n")
+	result.WriteString("{")
 	
 	descriptor := msg.GetMessageDescriptor()
 	fields := descriptor.GetFields()
+	fieldCount := 0
 	
-	for i, field := range fields {
+	for _, field := range fields {
 		if msg.HasField(field) {
-			value := msg.GetField(field)
-			result.WriteString(fmt.Sprintf("%s    %s = ", indent, field.GetName()))
-			result.WriteString(le.formatLuaValue(value, field, indentLevel+1))
-			
-			if i < len(fields)-1 {
-				result.WriteString(",")
+			if fieldCount > 0 {
+				result.WriteString(", ")
 			}
-			result.WriteString("\n")
+			value := msg.GetField(field)
+			result.WriteString(fmt.Sprintf("%s = %s", field.GetName(), le.formatLuaValue(value, field, indentLevel+1)))
+			fieldCount++
 		}
 	}
 	
-	result.WriteString(fmt.Sprintf("%s}", indent))
+	result.WriteString("}")
 	return result.String()
 }
 
@@ -138,7 +194,6 @@ func (le *LuaExporter) formatLuaValue(value interface{}, field *desc.FieldDescri
 
 // formatLuaArray formats array values for Lua output
 func (le *LuaExporter) formatLuaArray(value interface{}, field *desc.FieldDescriptor, indentLevel int) string {
-	indent := strings.Repeat("    ", indentLevel)
 	var result strings.Builder
 	
 	v, ok := value.([]interface{})
@@ -220,21 +275,18 @@ func (le *LuaExporter) formatLuaArray(value interface{}, field *desc.FieldDescri
 		result.WriteString("}")
 		
 	case "TYPE_MESSAGE":
-		// Complex types: use multi-line format with proper indentation
-		result.WriteString("{\n")
+		result.WriteString("{")
 		for i, item := range v {
-			result.WriteString(fmt.Sprintf("%s    ", indent))
+			if i > 0 {
+				result.WriteString(", ")
+			}
 			if msg, ok := item.(*dynamic.Message); ok {
 				result.WriteString(le.generateLuaMessage(msg, indentLevel+1))
 			} else {
 				result.WriteString("nil")
 			}
-			if i < len(v)-1 {
-				result.WriteString(",")
-			}
-			result.WriteString("\n")
 		}
-		result.WriteString(fmt.Sprintf("%s}", indent))
+		result.WriteString("}")
 		
 	default:
 		// Fallback: treat as strings
@@ -258,3 +310,4 @@ func (le *LuaExporter) formatLuaKey(key StoreKey) string {
 	}
 	return fmt.Sprintf(`"%s"`, key.StringValue)
 }
+

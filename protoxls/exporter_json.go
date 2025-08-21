@@ -37,41 +37,82 @@ func (je *JsonExporter) ExportResult(store *TableStore) error {
 	}
 	defer file.Close()
 
-	// Export data to JSON format
-	var jsonData interface{}
-	
+	// Export data to JSON format as a complete object with each key-value pair on one line
 	if store.HasChildStores() {
-		// Export as map structure
-		result := make(map[string]interface{})
+		// Export as map structure with formatted output
 		keys := store.GetAllKeys()
-		for _, key := range keys {
+		
+		// Write opening brace
+		if _, err := file.WriteString("{\n"); err != nil {
+			return fmt.Errorf("failed to write opening brace: %v", err)
+		}
+		
+		for i, key := range keys {
 			childStore := store.GetChildStore(key)
 			if childStore != nil {
 				childData, err := je.exportStoreToInterface(childStore)
 				if err != nil {
 					return err
 				}
-				result[key.String()] = childData
+				
+				// Marshal the value without indentation
+				valueBytes, err := json.Marshal(childData)
+				if err != nil {
+					return fmt.Errorf("failed to marshal JSON: %v", err)
+				}
+				
+				// Write key-value pair with proper formatting
+				keyStr := fmt.Sprintf(`    "%s":%s`, key.String(), string(valueBytes))
+				if i < len(keys)-1 {
+					keyStr += ","
+				}
+				keyStr += "\n"
+				
+				if _, err := file.WriteString(keyStr); err != nil {
+					return fmt.Errorf("failed to write JSON: %v", err)
+				}
 			}
 		}
-		jsonData = result
-	} else {
-		// Export as array of messages
-		messages := store.GetAllMessages()
-		result := make([]interface{}, 0, len(messages))
 		
-		for _, message := range messages {
+		// Write closing brace
+		if _, err := file.WriteString("}"); err != nil {
+			return fmt.Errorf("failed to write closing brace: %v", err)
+		}
+	} else {
+		// Export each message as one line in an array
+		messages := store.GetAllMessages()
+		
+		// Write opening bracket
+		if _, err := file.WriteString("[\n"); err != nil {
+			return fmt.Errorf("failed to write opening bracket: %v", err)
+		}
+		
+		for i, message := range messages {
 			// Convert dynamic message to JSON by converting to map
 			messageData := je.convertMessageToMap(message)
-			result = append(result, messageData)
+			
+			// Marshal to JSON without indentation
+			jsonBytes, err := json.Marshal(messageData)
+			if err != nil {
+				return fmt.Errorf("failed to marshal JSON: %v", err)
+			}
+			
+			// Write this message as one line with proper formatting
+			lineStr := fmt.Sprintf("    %s", string(jsonBytes))
+			if i < len(messages)-1 {
+				lineStr += ","
+			}
+			lineStr += "\n"
+			
+			if _, err := file.WriteString(lineStr); err != nil {
+				return fmt.Errorf("failed to write JSON: %v", err)
+			}
 		}
-		jsonData = result
-	}
-
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(jsonData); err != nil {
-		return fmt.Errorf("failed to encode JSON: %v", err)
+		
+		// Write closing bracket
+		if _, err := file.WriteString("]"); err != nil {
+			return fmt.Errorf("failed to write closing bracket: %v", err)
+		}
 	}
 
 	fmt.Printf("Exported JSON file: %s\n", filePath)
