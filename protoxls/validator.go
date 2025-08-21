@@ -34,7 +34,7 @@ func ValidateCellType(cellValue string, expectedType CellType) bool {
 func isBooleanValue(value string) bool {
 	normalizedValue := strings.ToLower(strings.TrimSpace(value))
 	validValues := []string{"1", "0", "true", "false"}
-	
+
 	for _, valid := range validValues {
 		if normalizedValue == valid {
 			return true

@@ -21,9 +21,9 @@ const (
 
 // StoreKey represents a key for indexing configuration data
 type StoreKey struct {
-	KeyType       StoreKeyType
-	IntegerValue  int64
-	StringValue   string
+	KeyType      StoreKeyType
+	IntegerValue int64
+	StringValue  string
 }
 
 // String returns the string representation of the store key
@@ -193,7 +193,6 @@ func (cs *TableStore) extractKeyFromMessage(message *dynamic.Message, fieldName 
 
 	return StoreKey{}, fmt.Errorf("unsupported key type %s for field %s", field.GetType().String(), fieldName)
 }
-
 
 // Split utility function for splitting delimited strings
 func Split(s, sep string) []string {

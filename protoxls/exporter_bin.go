@@ -14,13 +14,13 @@ type BinExporter struct {
 // ExportResult exports configuration data to binary format
 func (be *BinExporter) ExportResult(store *TableStore) error {
 	fileName := GetExportName(store, ".bin")
-	
+
 	// Use custom output directory or default
 	outputDir := be.OutputDir
 	if outputDir == "" {
 		outputDir = DefaultOutputDir
 	}
-	
+
 	// Create output directory if it doesn't exist
 	if err := os.MkdirAll(outputDir, DefaultFilePermissions); err != nil {
 		return fmt.Errorf("failed to create output directory: %v", err)
@@ -40,7 +40,7 @@ func (be *BinExporter) ExportResult(store *TableStore) error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal message %d: %v", i, err)
 		}
-		
+
 		// Write message size first (4 bytes, big-endian)
 		size := uint32(len(messageBytes))
 		sizeBytes := []byte{
@@ -49,11 +49,11 @@ func (be *BinExporter) ExportResult(store *TableStore) error {
 			byte(size >> 8),
 			byte(size),
 		}
-		
+
 		if _, err := file.Write(sizeBytes); err != nil {
 			return fmt.Errorf("failed to write message %d size: %v", i, err)
 		}
-		
+
 		if _, err := file.Write(messageBytes); err != nil {
 			return fmt.Errorf("failed to write message %d data: %v", i, err)
 		}

@@ -2,6 +2,7 @@ package protoxls
 
 import (
 	"strings"
+
 	"google.golang.org/protobuf/proto"
 )
 
@@ -27,14 +28,14 @@ func GetExportName(store *TableStore, extension string) string {
 func GetTableName(store *TableStore) string {
 	descriptor := store.GetMessageDescriptor()
 	options := descriptor.GetMessageOptions()
-	
+
 	// Try to get table option first
 	if options != nil {
 		if tableName, ok := proto.GetExtension(options, E_Table).(string); ok && tableName != "" {
 			return tableName
 		}
 	}
-	
+
 	// Fallback to descriptor name
 	return strings.ToLower(descriptor.GetName())
 }
