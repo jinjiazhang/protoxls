@@ -5,9 +5,8 @@ import "option.proto";
 message RoleScheme {
 	option (excel) = "角色数据表.xlsx";
 	option (sheet) = "角色数据";
+	option (name) = "role_table";
 	option (key) = "roleId";
-	option (output) = "role_table";
-	option (prefix) = "_G['RoleTable'] = ";
 
 	message PropScheme {
 		int32 attack = 1 [(text) = "攻击"];
@@ -15,10 +14,10 @@ message RoleScheme {
 	}
 
 	enum Vocation {
-		VOCATION_UNKNOW = 0 [(cname) = "未知"];
-		VOCATION_WARRIOR = 1 [(cname) = "战士"];
-		VOCATION_MASTER = 2 [(cname) = "法师"];
-		VOCATION_SHAMAN = 3 [(cname) = "巫师"];
+		VOCATION_UNKNOW = 0 [(alias) = "未知"];
+		VOCATION_WARRIOR = 1 [(alias) = "战士"];
+		VOCATION_MASTER = 2 [(alias) = "法师"];
+		VOCATION_SHAMAN = 3 [(alias) = "巫师"];
 	}
 	
 	int32 roleId = 1 [(text) = "角色ID"];

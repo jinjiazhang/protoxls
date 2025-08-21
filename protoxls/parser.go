@@ -143,7 +143,7 @@ func parseEnumValue(cellValue string, field *desc.FieldDescriptor) (int32, error
 	for _, enumVal := range enumDesc.GetValues() {
 		customName := ""
 		if opts := enumVal.GetEnumValueOptions(); opts != nil {
-			if ext, ok := proto.GetExtension(opts, E_Cname).(string); ok && ext != "" {
+			if ext, ok := proto.GetExtension(opts, E_Alias).(string); ok && ext != "" {
 				customName = ext
 			}
 		}

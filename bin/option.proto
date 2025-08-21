@@ -7,10 +7,8 @@ option go_package="/protoxls";
 extend google.protobuf.MessageOptions {
 	string excel = 1001;
 	string sheet = 1002;
-	string key = 1003;
-	string output = 1004;
-	string prefix = 1005;
-	string suffix = 1006;
+	string name = 1003;
+	string key = 1004;
 }
 
 extend google.protobuf.FieldOptions {
@@ -18,5 +16,5 @@ extend google.protobuf.FieldOptions {
 }
 
 extend google.protobuf.EnumValueOptions {
-	string cname = 1001;
+	string alias = 1001;
 }
