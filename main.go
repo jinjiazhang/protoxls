@@ -20,6 +20,7 @@ func main() {
 	binOut := flag.String("bin_out", "", "Generate binary files in the specified directory")
 	yamlOut := flag.String("yaml_out", "", "Generate YAML files in the specified directory")
 	phpOut := flag.String("php_out", "", "Generate PHP files in the specified directory")
+	allOut := flag.String("all_out", "", "Generate all format files in the specified directory")
 
 	// Format options
 	compactFormat := flag.Bool("compact", false, "Compress each data entry to a single line (applies to lua, json, php formats)")
@@ -30,13 +31,13 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Options:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(flag.CommandLine.Output(), "\nExamples:\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto                         # Generate JSON files (default)\n", "protoxls")
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -all_out=./output       # Generate all format files in ./output\n", "protoxls")
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -json_out=./output      # Generate JSON files in ./output\n", "protoxls")
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -lua_out=./output       # Generate Lua files in ./output\n", "protoxls")
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -yaml_out=./output      # Generate YAML files in ./output\n", "protoxls")
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -php_out=./output       # Generate PHP files in ./output\n", "protoxls")
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -lua_out=./output -json_out=./output  # Generate multiple formats\n", "protoxls")
-		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -json_out=./output -compact        # Generate compact JSON\n", "protoxls")
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -all_out=./output -compact           # Generate all formats compactly\n", "protoxls")
 	}
 
 	flag.Parse()
@@ -64,18 +65,30 @@ func main() {
 
 	// Configure export options
 	exportConfig := &protoxls.ExportConfig{
-		LuaOutput:     *luaOut,
-		JsonOutput:    *jsonOut,
-		BinOutput:     *binOut,
-		YamlOutput:    *yamlOut,
-		PhpOutput:     *phpOut,
 		CompactFormat: *compactFormat,
 	}
 
-	// If no output format specified, default to JSON
+	// Handle all_out option
+	if *allOut != "" {
+		exportConfig.LuaOutput = *allOut
+		exportConfig.JsonOutput = *allOut
+		exportConfig.BinOutput = *allOut
+		exportConfig.YamlOutput = *allOut
+		exportConfig.PhpOutput = *allOut
+	} else {
+		// Use individual format options
+		exportConfig.LuaOutput = *luaOut
+		exportConfig.JsonOutput = *jsonOut
+		exportConfig.BinOutput = *binOut
+		exportConfig.YamlOutput = *yamlOut
+		exportConfig.PhpOutput = *phpOut
+	}
+
+	// Check if any output format is specified
 	if exportConfig.LuaOutput == "" && exportConfig.JsonOutput == "" && exportConfig.BinOutput == "" && exportConfig.YamlOutput == "" && exportConfig.PhpOutput == "" {
-		exportConfig.JsonOutput = "output"
-		fmt.Println("No output format specified, defaulting to JSON output in './output' directory")
+		fmt.Fprintf(flag.CommandLine.Output(), "Error: No output format specified. Use one of: -lua_out, -json_out, -bin_out, -yaml_out, -php_out, or -all_out\n\n")
+		flag.Usage()
+		return
 	}
 
 	// Parse proto files and generate tables
