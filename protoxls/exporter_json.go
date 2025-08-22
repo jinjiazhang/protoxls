@@ -165,10 +165,6 @@ func (je *JsonExporter) convertMessageToMap(msg *dynamic.Message) *OrderedMap {
 	})
 
 	for _, field := range fields {
-		if !msg.HasField(field) {
-			continue
-		}
-
 		value := msg.GetField(field)
 		fieldName := field.GetName()
 

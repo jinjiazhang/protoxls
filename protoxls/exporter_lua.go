@@ -134,14 +134,12 @@ func (le *LuaExporter) generateLuaMessage(msg *dynamic.Message, indentLevel int)
 	fieldCount := 0
 
 	for _, field := range fields {
-		if msg.HasField(field) {
-			if fieldCount > 0 {
-				result.WriteString(", ")
-			}
-			value := msg.GetField(field)
-			result.WriteString(fmt.Sprintf("%s = %s", field.GetName(), le.formatLuaValue(value, field, indentLevel+1)))
-			fieldCount++
+		if fieldCount > 0 {
+			result.WriteString(", ")
 		}
+		value := msg.GetField(field)
+		result.WriteString(fmt.Sprintf("%s = %s", field.GetName(), le.formatLuaValue(value, field, indentLevel+1)))
+		fieldCount++
 	}
 
 	result.WriteString("}")
