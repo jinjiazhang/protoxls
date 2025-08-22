@@ -23,17 +23,21 @@ go build -o protoxls main.go
 ### 基本用法
 
 ```bash
-# 生成JSON文件（默认）
-./protoxls -proto scheme.proto
+# 构建可执行文件
+go build -o protoxls_exe
+
+# 生成JSON文件（从examples目录运行）
+cd examples
+../protoxls_exe -proto scheme.proto
 
 # 在指定目录生成JSON文件
-./protoxls -proto config.proto -json_out=./output
+../protoxls_exe -proto scheme.proto -json_out=../output
 
 # 生成Lua文件
-./protoxls -proto config.proto -lua_out=./lua
+../protoxls_exe -proto scheme.proto -lua_out=../output
 
 # 生成多种格式
-./protoxls -proto config.proto -lua_out=./lua -json_out=./json -bin_out=./bin
+../protoxls_exe -proto scheme.proto -lua_out=../output -json_out=../output -bin_out=../output
 ```
 
 ### 命令行选项
@@ -51,7 +55,7 @@ go build -o protoxls main.go
 在你的proto消息中使用这些自定义选项：
 
 ```protobuf
-import "bin/option.proto";
+import "examples/option.proto";
 
 message HeroConfig {
     option (excel) = "英雄配置表.xlsx";  // Excel文件路径
@@ -221,17 +225,22 @@ return {
 ## 示例项目结构
 
 ```
-project/
-├── bin/
+protoxls/
+├── examples/                 # 示例配置文件
 │   ├── option.proto          # 自定义proto选项
-│   └── scheme.proto          # 你的配置模式
-├── data/
+│   ├── scheme.proto          # 英雄配置模式
 │   └── 英雄配置表.xlsx        # Excel数据文件
+├── protoxls/                 # 源代码
+│   ├── parser.go
+│   ├── exporter*.go
+│   └── ...
 ├── output/                   # 生成的文件
 │   ├── hero_config.json
 │   ├── hero_config.lua
 │   └── hero_config.bin
-└── protoxls                  # 可执行文件
+├── main.go                   # 主应用程序
+├── README_CN.md
+└── protoxls_exe              # 构建的可执行文件
 ```
 
 ## 错误处理
@@ -247,7 +256,7 @@ project/
 
 ## 完整功能演示
 
-项目中的`bin/scheme.proto`文件演示了所有功能：
+项目中的`examples/scheme.proto`文件演示了所有功能：
 
 ### 单列数组（逗号分隔）
 ```protobuf

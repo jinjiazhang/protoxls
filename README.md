@@ -23,17 +23,21 @@ go build -o protoxls main.go
 ### Basic Usage
 
 ```bash
-# Generate JSON files (default)
-./protoxls -proto scheme.proto
+# Build the executable
+go build -o protoxls_exe
+
+# Generate JSON files (run from examples directory)
+cd examples
+../protoxls_exe -proto scheme.proto
 
 # Generate JSON files in specific directory
-./protoxls -proto config.proto -json_out=./output
+../protoxls_exe -proto scheme.proto -json_out=../output
 
 # Generate Lua files
-./protoxls -proto config.proto -lua_out=./lua
+../protoxls_exe -proto scheme.proto -lua_out=../output
 
 # Generate multiple formats
-./protoxls -proto config.proto -lua_out=./lua -json_out=./json -bin_out=./bin
+../protoxls_exe -proto scheme.proto -lua_out=../output -json_out=../output -bin_out=../output
 ```
 
 ### Command Line Options
@@ -51,7 +55,7 @@ go build -o protoxls main.go
 Use these custom options in your proto messages:
 
 ```protobuf
-import "bin/option.proto";
+import "examples/option.proto";
 
 message HeroConfig {
     option (excel) = "英雄配置表.xlsx";  // Excel file path
@@ -221,17 +225,22 @@ Protocol buffer binary format for efficient runtime loading.
 ## Example Project Structure
 
 ```
-project/
-├── bin/
+protoxls/
+├── examples/                 # Example configuration files
 │   ├── option.proto          # Custom proto options
-│   └── scheme.proto          # Your configuration schema
-├── data/
+│   ├── scheme.proto          # Hero configuration schema
 │   └── 英雄配置表.xlsx        # Excel data file
+├── protoxls/                 # Source code
+│   ├── parser.go
+│   ├── exporter*.go
+│   └── ...
 ├── output/                   # Generated files
 │   ├── hero_config.json
 │   ├── hero_config.lua
 │   └── hero_config.bin
-└── protoxls                  # Executable
+├── main.go                   # Main application
+├── README.md
+└── protoxls_exe              # Built executable
 ```
 
 ## Error Handling
