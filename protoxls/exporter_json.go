@@ -3,8 +3,6 @@ package protoxls
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -19,23 +17,10 @@ type JsonExporter struct {
 
 // ExportResult exports configuration data to JSON format
 func (je *JsonExporter) ExportResult(store *TableStore) error {
-	fileName := GetExportName(store, ".json")
-
-	// Use custom output directory or default
-	outputDir := je.OutputDir
-	if outputDir == "" {
-		outputDir = DefaultOutputDir
-	}
-
-	// Create output directory if it doesn't exist
-	if err := os.MkdirAll(outputDir, DefaultFilePermissions); err != nil {
-		return fmt.Errorf("failed to create output directory: %v", err)
-	}
-
-	filePath := filepath.Join(outputDir, fileName)
-	file, err := os.Create(filePath)
+	// Create output file using shared function
+	file, err := CreateOutputFile(store, je.OutputDir, "JSON")
 	if err != nil {
-		return fmt.Errorf("failed to create json file: %v", err)
+		return err
 	}
 	defer file.Close()
 
@@ -118,7 +103,6 @@ func (je *JsonExporter) ExportResult(store *TableStore) error {
 		}
 	}
 
-	fmt.Printf("Exported JSON file: %s\n", filePath)
 	return nil
 }
 

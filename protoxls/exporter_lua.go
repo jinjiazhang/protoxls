@@ -2,8 +2,6 @@ package protoxls
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/jhump/protoreflect/desc"
@@ -17,23 +15,10 @@ type LuaExporter struct {
 
 // ExportResult exports configuration data to Lua format
 func (le *LuaExporter) ExportResult(store *TableStore) error {
-	fileName := GetExportName(store, ".lua")
-
-	// Use custom output directory or default
-	outputDir := le.OutputDir
-	if outputDir == "" {
-		outputDir = DefaultOutputDir
-	}
-
-	// Create output directory if it doesn't exist
-	if err := os.MkdirAll(outputDir, DefaultFilePermissions); err != nil {
-		return fmt.Errorf("failed to create output directory: %v", err)
-	}
-
-	filePath := filepath.Join(outputDir, fileName)
-	file, err := os.Create(filePath)
+	// Create output file using shared function
+	file, err := CreateOutputFile(store, le.OutputDir, "Lua")
 	if err != nil {
-		return fmt.Errorf("failed to create lua file: %v", err)
+		return err
 	}
 	defer file.Close()
 
@@ -103,7 +88,6 @@ func (le *LuaExporter) ExportResult(store *TableStore) error {
 		}
 	}
 
-	fmt.Printf("Exported Lua file: %s\n", filePath)
 	return nil
 }
 

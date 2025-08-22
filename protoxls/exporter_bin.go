@@ -2,8 +2,6 @@ package protoxls
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 )
 
 // BinExporter exports configuration data to binary format
@@ -13,23 +11,10 @@ type BinExporter struct {
 
 // ExportResult exports configuration data to binary format
 func (be *BinExporter) ExportResult(store *TableStore) error {
-	fileName := GetExportName(store, ".bin")
-
-	// Use custom output directory or default
-	outputDir := be.OutputDir
-	if outputDir == "" {
-		outputDir = DefaultOutputDir
-	}
-
-	// Create output directory if it doesn't exist
-	if err := os.MkdirAll(outputDir, DefaultFilePermissions); err != nil {
-		return fmt.Errorf("failed to create output directory: %v", err)
-	}
-
-	filePath := filepath.Join(outputDir, fileName)
-	file, err := os.Create(filePath)
+	// Create output file using shared function
+	file, err := CreateOutputFile(store, be.OutputDir, "binary")
 	if err != nil {
-		return fmt.Errorf("failed to create binary file: %v", err)
+		return err
 	}
 	defer file.Close()
 
@@ -59,6 +44,5 @@ func (be *BinExporter) ExportResult(store *TableStore) error {
 		}
 	}
 
-	fmt.Printf("Exported binary file: %s\n", filePath)
 	return nil
 }
