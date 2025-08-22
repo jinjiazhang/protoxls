@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
@@ -89,7 +91,7 @@ func (je *JsonExporter) ExportResult(store *TableStore) error {
 		}
 
 		for i, message := range messages {
-			// Convert dynamic message to JSON by converting to map
+			// Convert dynamic message to JSON by converting to ordered map
 			messageData := je.convertMessageToMap(message)
 
 			// Marshal the message as compact JSON
@@ -97,10 +99,9 @@ func (je *JsonExporter) ExportResult(store *TableStore) error {
 			if err != nil {
 				return fmt.Errorf("failed to marshal JSON: %v", err)
 			}
-			formattedJSON := string(jsonBytes)
 
 			// Write this message as one line with proper formatting
-			lineStr := fmt.Sprintf("    %s", formattedJSON)
+			lineStr := fmt.Sprintf("    %s", string(jsonBytes))
 			if i < len(messages)-1 {
 				lineStr += ","
 			}
@@ -145,12 +146,41 @@ func (je *JsonExporter) exportStoreToInterface(store *TableStore) (interface{}, 
 	}
 }
 
-// convertMessageToMap converts a dynamic message to map for JSON serialization
-func (je *JsonExporter) convertMessageToMap(msg *dynamic.Message) map[string]interface{} {
-	result := make(map[string]interface{})
+// OrderedMap represents an ordered map to maintain field order
+type OrderedMap struct {
+	Keys   []string
+	Values map[string]interface{}
+}
+
+// MarshalJSON implements json.Marshaler to maintain order during JSON serialization
+func (om *OrderedMap) MarshalJSON() ([]byte, error) {
+	var parts []string
+	for _, key := range om.Keys {
+		value := om.Values[key]
+		valueBytes, err := json.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		parts = append(parts, fmt.Sprintf(`"%s": %s`, key, string(valueBytes)))
+	}
+	return []byte("{" + strings.Join(parts, ", ") + "}"), nil
+}
+
+// convertMessageToMap converts a dynamic message to ordered map for JSON serialization
+func (je *JsonExporter) convertMessageToMap(msg *dynamic.Message) *OrderedMap {
+	result := &OrderedMap{
+		Keys:   make([]string, 0),
+		Values: make(map[string]interface{}),
+	}
 	descriptor := msg.GetMessageDescriptor()
 
-	for _, field := range descriptor.GetFields() {
+	// Get fields and sort them by field number to maintain proto definition order
+	fields := descriptor.GetFields()
+	sort.Slice(fields, func(i, j int) bool {
+		return fields[i].GetNumber() < fields[j].GetNumber()
+	})
+
+	for _, field := range fields {
 		if !msg.HasField(field) {
 			continue
 		}
@@ -159,10 +189,11 @@ func (je *JsonExporter) convertMessageToMap(msg *dynamic.Message) map[string]int
 		fieldName := field.GetName()
 
 		if field.IsRepeated() {
-			result[fieldName] = je.convertRepeatedFieldValue(value, field)
+			result.Values[fieldName] = je.convertRepeatedFieldValue(value, field)
 		} else {
-			result[fieldName] = je.convertSingleFieldValue(value, field)
+			result.Values[fieldName] = je.convertSingleFieldValue(value, field)
 		}
+		result.Keys = append(result.Keys, fieldName)
 	}
 
 	return result
