@@ -1,11 +1,11 @@
 # ProtobufXLS - Excel转Protobuf配置生成器
 
-ProtobufXLS是一个强大的工具，可以将Excel电子表格转换为基于protobuf的配置文件。它支持多种输出格式（JSON、Lua、二进制），并处理复杂的数据结构，包括数组、嵌套消息和分层索引。
+ProtobufXLS是一个强大的工具，可以将Excel电子表格转换为基于protobuf的配置文件。它支持多种输出格式（JSON、Lua、二进制、YAML、PHP），并处理复杂的数据结构，包括数组、嵌套消息和分层索引。
 
 ## 功能特性
 
 - **Excel转Protobuf转换**：解析Excel文件并生成protobuf消息
-- **多种输出格式**：导出为JSON、Lua和二进制格式
+- **多种输出格式**：导出为JSON、Lua、二进制、YAML和PHP格式
 - **高级数据类型**：支持数组、嵌套消息和复杂字段类型
 - **灵活的数组处理**：支持分隔符分隔和索引列数组
 - **分层索引**：多级基于键的数据组织
@@ -36,8 +36,14 @@ cd examples
 # 生成Lua文件
 ../protoxls_exe -proto scheme.proto -lua_out=../output
 
+# 生成YAML文件
+../protoxls_exe -proto scheme.proto -yaml_out=../output
+
+# 生成PHP文件
+../protoxls_exe -proto scheme.proto -php_out=../output
+
 # 生成多种格式
-../protoxls_exe -proto scheme.proto -lua_out=../output -json_out=../output -bin_out=../output
+../protoxls_exe -proto scheme.proto -lua_out=../output -json_out=../output -bin_out=../output -yaml_out=../output -php_out=../output
 ```
 
 ### 命令行选项
@@ -47,6 +53,8 @@ cd examples
 - `-json_out <目录>`：在指定目录生成JSON文件
 - `-lua_out <目录>`：在指定目录生成Lua文件
 - `-bin_out <目录>`：在指定目录生成二进制文件
+- `-yaml_out <目录>`：在指定目录生成YAML文件
+- `-php_out <目录>`：在指定目录生成PHP文件
 
 ## Proto定义
 

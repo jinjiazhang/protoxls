@@ -1,11 +1,11 @@
 # ProtobufXLS - Excel to Protobuf Configuration Generator
 
-ProtobufXLS is a powerful tool that converts Excel spreadsheets into protobuf-based configuration files. It supports multiple output formats (JSON, Lua, Binary) and handles complex data structures including arrays, nested messages, and hierarchical indexing.
+ProtobufXLS is a powerful tool that converts Excel spreadsheets into protobuf-based configuration files. It supports multiple output formats (JSON, Lua, Binary, YAML, PHP) and handles complex data structures including arrays, nested messages, and hierarchical indexing.
 
 ## Features
 
 - **Excel to Protobuf Conversion**: Parse Excel files and generate protobuf messages
-- **Multiple Output Formats**: Export to JSON, Lua, and Binary formats
+- **Multiple Output Formats**: Export to JSON, Lua, Binary, YAML, and PHP formats
 - **Advanced Data Types**: Support for arrays, nested messages, and complex field types
 - **Flexible Array Handling**: Both delimiter-separated and indexed column arrays
 - **Hierarchical Indexing**: Multi-level key-based data organization
@@ -36,8 +36,14 @@ cd examples
 # Generate Lua files
 ../protoxls_exe -proto scheme.proto -lua_out=../output
 
+# Generate YAML files
+../protoxls_exe -proto scheme.proto -yaml_out=../output
+
+# Generate PHP files
+../protoxls_exe -proto scheme.proto -php_out=../output
+
 # Generate multiple formats
-../protoxls_exe -proto scheme.proto -lua_out=../output -json_out=../output -bin_out=../output
+../protoxls_exe -proto scheme.proto -lua_out=../output -json_out=../output -bin_out=../output -yaml_out=../output -php_out=../output
 ```
 
 ### Command Line Options
@@ -47,6 +53,8 @@ cd examples
 - `-json_out <dir>`: Generate JSON files in specified directory
 - `-lua_out <dir>`: Generate Lua files in specified directory
 - `-bin_out <dir>`: Generate binary files in specified directory
+- `-yaml_out <dir>`: Generate YAML files in specified directory
+- `-php_out <dir>`: Generate PHP files in specified directory
 
 ## Proto Definition
 
@@ -200,6 +208,31 @@ return {
 }
 ```
 
+### YAML Output
+```yaml
+"1":
+  id: 1
+  name: Arthur
+  skills:
+    - 1
+    - 2
+    - 3
+    - 4
+```
+
+### PHP Output
+```php
+<?php
+
+$hero_config = [
+    '1' => [
+        'id' => 1,
+        'name' => 'Arthur',
+        'skills' => [1, 2, 3, 4]
+    ]
+];
+```
+
 ### Binary Output
 Protocol buffer binary format for efficient runtime loading.
 
@@ -213,6 +246,8 @@ Protocol buffer binary format for efficient runtime loading.
   - `exporter_json.go`: JSON format export
   - `exporter_lua.go`: Lua format export
   - `exporter_bin.go`: Binary format export
+  - `exporter_yaml.go`: YAML format export
+  - `exporter_php.go`: PHP format export
 - **Validator** (`validator.go`): Data type validation
 
 ### Key Features
@@ -237,7 +272,9 @@ protoxls/
 ├── output/                   # Generated files
 │   ├── hero_config.json
 │   ├── hero_config.lua
-│   └── hero_config.bin
+│   ├── hero_config.bin
+│   ├── hero_config.yaml
+│   └── hero_config.php
 ├── main.go                   # Main application
 ├── README.md
 └── protoxls_exe              # Built executable

@@ -18,6 +18,8 @@ func main() {
 	luaOut := flag.String("lua_out", "", "Generate Lua files in the specified directory")
 	jsonOut := flag.String("json_out", "", "Generate JSON files in the specified directory")
 	binOut := flag.String("bin_out", "", "Generate binary files in the specified directory")
+	yamlOut := flag.String("yaml_out", "", "Generate YAML files in the specified directory")
+	phpOut := flag.String("php_out", "", "Generate PHP files in the specified directory")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [options] -proto <proto_file>\n\n", "protoxls")
@@ -28,7 +30,9 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto                         # Generate JSON files (default)\n", "protoxls")
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -json_out=./output      # Generate JSON files in ./output\n", "protoxls")
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -lua_out=./output       # Generate Lua files in ./output\n", "protoxls")
-		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -lua_out=./output -json_out=./output  # Generate both formats\n", "protoxls")
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -yaml_out=./output      # Generate YAML files in ./output\n", "protoxls")
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -php_out=./output       # Generate PHP files in ./output\n", "protoxls")
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -lua_out=./output -json_out=./output  # Generate multiple formats\n", "protoxls")
 	}
 
 	flag.Parse()
@@ -59,10 +63,12 @@ func main() {
 		LuaOutput:  *luaOut,
 		JsonOutput: *jsonOut,
 		BinOutput:  *binOut,
+		YamlOutput: *yamlOut,
+		PhpOutput:  *phpOut,
 	}
 
 	// If no output format specified, default to JSON
-	if exportConfig.LuaOutput == "" && exportConfig.JsonOutput == "" && exportConfig.BinOutput == "" {
+	if exportConfig.LuaOutput == "" && exportConfig.JsonOutput == "" && exportConfig.BinOutput == "" && exportConfig.YamlOutput == "" && exportConfig.PhpOutput == "" {
 		exportConfig.JsonOutput = "output"
 		fmt.Println("No output format specified, defaulting to JSON output in './output' directory")
 	}

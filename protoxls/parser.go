@@ -274,6 +274,8 @@ type ExportConfig struct {
 	LuaOutput  string // Output directory for Lua files
 	JsonOutput string // Output directory for JSON files
 	BinOutput  string // Output directory for Binary files
+	YamlOutput string // Output directory for YAML files
+	PhpOutput  string // Output directory for PHP files
 }
 
 // ParseProtoFiles parses proto files and generates configuration tables with custom export configuration
@@ -403,6 +405,12 @@ func ExportTableStores(stores []*TableStore, exportConfig *ExportConfig) error {
 	}
 	if exportConfig.BinOutput != "" {
 		exporters = append(exporters, &BinExporter{OutputDir: exportConfig.BinOutput})
+	}
+	if exportConfig.YamlOutput != "" {
+		exporters = append(exporters, &YamlExporter{OutputDir: exportConfig.YamlOutput})
+	}
+	if exportConfig.PhpOutput != "" {
+		exporters = append(exporters, &PhpExporter{OutputDir: exportConfig.PhpOutput})
 	}
 
 	// If no exporters specified, default to JSON
