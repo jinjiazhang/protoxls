@@ -206,21 +206,46 @@ func parseDelimitedArray(message *dynamic.Message, field *desc.FieldDescriptor, 
 func parseIndexedArray(message *dynamic.Message, field *desc.FieldDescriptor, row []string, headerMap map[string]int, baseColumnName string) error {
 	for index := 1; ; index++ {
 		elementColumnName := buildArrayElementColumnName(baseColumnName, index)
-		if !columnExists(headerMap, elementColumnName) {
-			break
-		}
+		
+		// For message types, check if any sub-field exists for this index
+		if field.GetType().String() == "TYPE_MESSAGE" {
+			// Check if any field of this message exists with this index
+			hasAnyField := false
+			for _, subField := range field.GetMessageType().GetFields() {
+				subColumnName := elementColumnName + "." + buildFieldColumnName(subField, "")
+				if columnExists(headerMap, subColumnName) {
+					hasAnyField = true
+					break
+				}
+			}
+			if !hasAnyField {
+				break
+			}
+			
+			// Create nested message for this index
+			nestedMessage := dynamic.NewMessage(field.GetMessageType())
+			if err := parseMessage(nestedMessage, field.GetMessageType(), row, headerMap, 0, elementColumnName); err != nil {
+				return fmt.Errorf("failed to parse nested message at index %d: %v", index, err)
+			}
+			message.AddRepeatedField(field, nestedMessage)
+		} else {
+			// Handle primitive types
+			if !columnExists(headerMap, elementColumnName) {
+				break
+			}
 
-		colIndex := headerMap[elementColumnName]
-		cellValue := row[colIndex]
-		if cellValue == "" {
-			continue
-		}
+			colIndex := headerMap[elementColumnName]
+			cellValue := row[colIndex]
+			if cellValue == "" {
+				continue
+			}
 
-		convertedValue, err := convertCellValue(cellValue, field)
-		if err != nil {
-			return fmt.Errorf("failed to convert array element '%s' at index %d: %v", cellValue, index, err)
+			convertedValue, err := convertCellValue(cellValue, field)
+			if err != nil {
+				return fmt.Errorf("failed to convert array element '%s' at index %d: %v", cellValue, index, err)
+			}
+			message.AddRepeatedField(field, convertedValue)
 		}
-		message.AddRepeatedField(field, convertedValue)
 	}
 	return nil
 }
