@@ -25,10 +25,10 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Options:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(flag.CommandLine.Output(), "\nExamples:\n")
-		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto                          # Generate JSON files (default)\n", "protoxls")
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto                         # Generate JSON files (default)\n", "protoxls")
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -json_out=./output      # Generate JSON files in ./output\n", "protoxls")
-		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -lua_out=./lua          # Generate Lua files in ./lua\n", "protoxls")
-		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -lua_out=./lua -json_out=./json  # Generate both formats\n", "protoxls")
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -lua_out=./output       # Generate Lua files in ./output\n", "protoxls")
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -lua_out=./output -json_out=./output  # Generate both formats\n", "protoxls")
 	}
 
 	flag.Parse()
@@ -75,13 +75,4 @@ func main() {
 
 	// Print success message
 	fmt.Printf("Successfully processed %s\n", *protoFilePath)
-	if exportConfig.LuaOutput != "" {
-		fmt.Printf("  - Lua files generated in: %s\n", exportConfig.LuaOutput)
-	}
-	if exportConfig.JsonOutput != "" {
-		fmt.Printf("  - JSON files generated in: %s\n", exportConfig.JsonOutput)
-	}
-	if exportConfig.BinOutput != "" {
-		fmt.Printf("  - Binary files generated in: %s\n", exportConfig.BinOutput)
-	}
 }
