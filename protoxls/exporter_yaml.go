@@ -2,6 +2,7 @@ package protoxls
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
@@ -75,24 +76,51 @@ func (e *YamlExporter) exportStoreToInterface(store *TableStore) (interface{}, e
 	}
 }
 
-// convertMessageToMap converts a dynamic message to map for YAML serialization
-func (e *YamlExporter) convertMessageToMap(msg *dynamic.Message) map[string]interface{} {
-	result := make(map[string]interface{})
+// convertMessageToMap converts a dynamic message to ordered YAML node for serialization
+func (e *YamlExporter) convertMessageToMap(msg *dynamic.Message) *yaml.Node {
+	result := &yaml.Node{
+		Kind: yaml.MappingNode,
+	}
+	
 	descriptor := msg.GetMessageDescriptor()
 	fields := descriptor.GetFields()
+
+	// Sort fields by field number to maintain proto definition order (consistent with JSON and PHP exporters)
+	sort.Slice(fields, func(i, j int) bool {
+		return fields[i].GetNumber() < fields[j].GetNumber()
+	})
 
 	for _, field := range fields {
 		value := msg.GetField(field)
 		fieldName := field.GetName()
 
-		if field.IsRepeated() {
-			result[fieldName] = e.convertRepeatedFieldValue(value, field)
-		} else {
-			result[fieldName] = e.convertSingleFieldValue(value, field)
+		// Add field name as key
+		keyNode := &yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Value: fieldName,
 		}
+		result.Content = append(result.Content, keyNode)
+
+		// Add field value
+		var fieldValue interface{}
+		if field.IsRepeated() {
+			fieldValue = e.convertRepeatedFieldValue(value, field)
+		} else {
+			fieldValue = e.convertSingleFieldValue(value, field)
+		}
+		
+		valueNode := e.convertValueToYamlNode(fieldValue)
+		result.Content = append(result.Content, valueNode)
 	}
 
 	return result
+}
+
+// convertValueToYamlNode converts a value to yaml.Node
+func (e *YamlExporter) convertValueToYamlNode(value interface{}) *yaml.Node {
+	node := &yaml.Node{}
+	node.Encode(value)
+	return node
 }
 
 // convertSingleFieldValue converts a single field value for YAML serialization
@@ -104,7 +132,70 @@ func (e *YamlExporter) convertSingleFieldValue(value interface{}, field *desc.Fi
 	switch field.GetType().String() {
 	case "TYPE_MESSAGE":
 		if dmsg, ok := value.(*dynamic.Message); ok {
-			return e.convertMessageToMap(dmsg)
+			// For nested messages, we need to convert them to regular map for proper YAML encoding
+			return e.convertMessageToOrderedMap(dmsg)
+		}
+	case "TYPE_ENUM":
+		// Return enum as number
+		return value
+	default:
+		return value
+	}
+
+	return value
+}
+
+// convertMessageToOrderedMap converts a dynamic message to a yaml.Node with ordered keys for nested messages
+func (e *YamlExporter) convertMessageToOrderedMap(msg *dynamic.Message) *yaml.Node {
+	result := &yaml.Node{
+		Kind: yaml.MappingNode,
+	}
+	
+	descriptor := msg.GetMessageDescriptor()
+	fields := descriptor.GetFields()
+
+	// Sort fields by field number to maintain proto definition order
+	sort.Slice(fields, func(i, j int) bool {
+		return fields[i].GetNumber() < fields[j].GetNumber()
+	})
+
+	for _, field := range fields {
+		value := msg.GetField(field)
+		fieldName := field.GetName()
+
+		// Add field name as key
+		keyNode := &yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Value: fieldName,
+		}
+		result.Content = append(result.Content, keyNode)
+
+		// Add field value
+		var fieldValue interface{}
+		if field.IsRepeated() {
+			fieldValue = e.convertRepeatedFieldValue(value, field)
+		} else {
+			fieldValue = e.convertSingleFieldValueForNested(value, field)
+		}
+		
+		valueNode := e.convertValueToYamlNode(fieldValue)
+		result.Content = append(result.Content, valueNode)
+	}
+
+	return result
+}
+
+// convertSingleFieldValueForNested converts a single field value for nested YAML serialization
+func (e *YamlExporter) convertSingleFieldValueForNested(value interface{}, field *desc.FieldDescriptor) interface{} {
+	if value == nil {
+		return nil
+	}
+
+	switch field.GetType().String() {
+	case "TYPE_MESSAGE":
+		if dmsg, ok := value.(*dynamic.Message); ok {
+			// For nested messages, we need to convert them to ordered yaml.Node
+			return e.convertMessageToOrderedMap(dmsg)
 		}
 	case "TYPE_ENUM":
 		// Return enum as number
@@ -123,7 +214,15 @@ func (e *YamlExporter) convertRepeatedFieldValue(value interface{}, field *desc.
 	case []interface{}:
 		result := make([]interface{}, len(v))
 		for i, item := range v {
-			result[i] = e.convertSingleFieldValue(item, field)
+			if field.GetType().String() == "TYPE_MESSAGE" {
+				if dmsg, ok := item.(*dynamic.Message); ok {
+					result[i] = e.convertMessageToOrderedMap(dmsg)
+				} else {
+					result[i] = item
+				}
+			} else {
+				result[i] = e.convertSingleFieldValue(item, field)
+			}
 		}
 		return result
 	default:
