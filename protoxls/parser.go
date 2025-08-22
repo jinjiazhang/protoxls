@@ -112,11 +112,17 @@ func convertCellValue(cellValue string, field *desc.FieldDescriptor) (interface{
 		}
 		return nil, fmt.Errorf("invalid int64 value: %s", cellValue)
 
-	case "TYPE_FLOAT", "TYPE_DOUBLE":
+	case "TYPE_FLOAT":
+		if floatVal, err := strconv.ParseFloat(cellValue, 32); err == nil {
+			return float32(floatVal), nil
+		}
+		return nil, fmt.Errorf("invalid float value: %s", cellValue)
+
+	case "TYPE_DOUBLE":
 		if floatVal, err := strconv.ParseFloat(cellValue, 64); err == nil {
 			return floatVal, nil
 		}
-		return nil, fmt.Errorf("invalid float value: %s", cellValue)
+		return nil, fmt.Errorf("invalid double value: %s", cellValue)
 
 	case "TYPE_BOOL":
 		if boolVal, err := ParseBoolean(cellValue); err == nil {
@@ -260,6 +266,17 @@ func ParseProtoFiles(protoFile string, importPaths []string, exportConfig *Expor
 
 	for _, fd := range fileDescriptors {
 		for _, md := range fd.GetMessageTypes() {
+			// Only process messages that have Excel options
+			options := md.GetMessageOptions()
+			if options == nil {
+				continue
+			}
+			
+			// Check if message has excel option
+			if _, ok := proto.GetExtension(options, E_Excel).(string); !ok {
+				continue
+			}
+			
 			store, err := parseExcelToTableStore(md)
 			if err != nil {
 				return fmt.Errorf("failed to generate table for message %s: %v", md.GetName(), err)
