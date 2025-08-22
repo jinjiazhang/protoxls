@@ -12,7 +12,8 @@ import (
 
 // JsonExporter exports configuration data to JSON format
 type JsonExporter struct {
-	OutputDir string // Custom output directory, defaults to DefaultOutputDir if empty
+	OutputDir     string // Custom output directory, defaults to DefaultOutputDir if empty
+	CompactFormat bool   // Whether to compress each data entry to a single line
 }
 
 // ExportResult exports configuration data to JSON format
@@ -42,8 +43,13 @@ func (je *JsonExporter) ExportResult(store *TableStore) error {
 					return err
 				}
 
-				// Marshal the value as compact JSON
-				valueBytes, err := json.Marshal(childData)
+				// Marshal the value as JSON
+				var valueBytes []byte
+				if je.CompactFormat {
+					valueBytes, err = json.Marshal(childData)
+				} else {
+					valueBytes, err = json.MarshalIndent(childData, "    ", "    ")
+				}
 				if err != nil {
 					return fmt.Errorf("failed to marshal JSON: %v", err)
 				}
@@ -79,8 +85,13 @@ func (je *JsonExporter) ExportResult(store *TableStore) error {
 			// Convert dynamic message to JSON by converting to ordered map
 			messageData := je.convertMessageToMap(message)
 
-			// Marshal the message as compact JSON
-			jsonBytes, err := json.Marshal(messageData)
+			// Marshal the message as JSON
+			var jsonBytes []byte
+			if je.CompactFormat {
+				jsonBytes, err = json.Marshal(messageData)
+			} else {
+				jsonBytes, err = json.MarshalIndent(messageData, "    ", "    ")
+			}
 			if err != nil {
 				return fmt.Errorf("failed to marshal JSON: %v", err)
 			}

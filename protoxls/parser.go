@@ -271,11 +271,12 @@ func parseMessage(message *dynamic.Message, msgDesc *desc.MessageDescriptor, row
 
 // ExportConfig holds configuration for different export formats
 type ExportConfig struct {
-	LuaOutput  string // Output directory for Lua files
-	JsonOutput string // Output directory for JSON files
-	BinOutput  string // Output directory for Binary files
-	YamlOutput string // Output directory for YAML files
-	PhpOutput  string // Output directory for PHP files
+	LuaOutput     string // Output directory for Lua files
+	JsonOutput    string // Output directory for JSON files
+	BinOutput     string // Output directory for Binary files
+	YamlOutput    string // Output directory for YAML files
+	PhpOutput     string // Output directory for PHP files
+	CompactFormat bool   // Whether to compress each data entry to a single line
 }
 
 // ParseProtoFiles parses proto files and generates configuration tables with custom export configuration
@@ -398,10 +399,10 @@ func ExportTableStores(stores []*TableStore, exportConfig *ExportConfig) error {
 
 	// Add exporters based on configuration
 	if exportConfig.LuaOutput != "" {
-		exporters = append(exporters, &LuaExporter{OutputDir: exportConfig.LuaOutput})
+		exporters = append(exporters, &LuaExporter{OutputDir: exportConfig.LuaOutput, CompactFormat: exportConfig.CompactFormat})
 	}
 	if exportConfig.JsonOutput != "" {
-		exporters = append(exporters, &JsonExporter{OutputDir: exportConfig.JsonOutput})
+		exporters = append(exporters, &JsonExporter{OutputDir: exportConfig.JsonOutput, CompactFormat: exportConfig.CompactFormat})
 	}
 	if exportConfig.BinOutput != "" {
 		exporters = append(exporters, &BinExporter{OutputDir: exportConfig.BinOutput})
@@ -410,12 +411,12 @@ func ExportTableStores(stores []*TableStore, exportConfig *ExportConfig) error {
 		exporters = append(exporters, &YamlExporter{OutputDir: exportConfig.YamlOutput})
 	}
 	if exportConfig.PhpOutput != "" {
-		exporters = append(exporters, &PhpExporter{OutputDir: exportConfig.PhpOutput})
+		exporters = append(exporters, &PhpExporter{OutputDir: exportConfig.PhpOutput, CompactFormat: exportConfig.CompactFormat})
 	}
 
 	// If no exporters specified, default to JSON
 	if len(exporters) == 0 {
-		exporters = append(exporters, &JsonExporter{OutputDir: DefaultOutputDir})
+		exporters = append(exporters, &JsonExporter{OutputDir: DefaultOutputDir, CompactFormat: exportConfig.CompactFormat})
 	}
 
 	for _, store := range stores {

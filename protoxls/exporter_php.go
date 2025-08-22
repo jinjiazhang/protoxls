@@ -11,7 +11,8 @@ import (
 
 // PhpExporter exports data to PHP format
 type PhpExporter struct {
-	OutputDir string
+	OutputDir     string
+	CompactFormat bool // Whether to compress each data entry to a single line
 }
 
 // ExportResult exports the table store data to a PHP file
@@ -105,20 +106,38 @@ func (e *PhpExporter) generatePhpCode(store *TableStore, indentLevel int) string
 	var result strings.Builder
 
 	if store.HasChildStores() {
-		result.WriteString("[\n")
-		keys := store.GetAllKeys()
-		for i, key := range keys {
-			childStore := store.GetChildStore(key)
-			if childStore != nil {
-				result.WriteString(fmt.Sprintf("%s    %s => ", indent, e.formatPhpKey(key)))
-				result.WriteString(e.generatePhpCode(childStore, indentLevel+1))
-				if i < len(keys)-1 {
-					result.WriteString(",")
+		if e.CompactFormat {
+			// Compact format: all on one line
+			result.WriteString("[")
+			keys := store.GetAllKeys()
+			for i, key := range keys {
+				childStore := store.GetChildStore(key)
+				if childStore != nil {
+					result.WriteString(fmt.Sprintf("%s => ", e.formatPhpKey(key)))
+					result.WriteString(e.generatePhpCode(childStore, indentLevel+1))
+					if i < len(keys)-1 {
+						result.WriteString(", ")
+					}
 				}
-				result.WriteString("\n")
 			}
+			result.WriteString("]")
+		} else {
+			// Multi-line format
+			result.WriteString("[\n")
+			keys := store.GetAllKeys()
+			for i, key := range keys {
+				childStore := store.GetChildStore(key)
+				if childStore != nil {
+					result.WriteString(fmt.Sprintf("%s    %s => ", indent, e.formatPhpKey(key)))
+					result.WriteString(e.generatePhpCode(childStore, indentLevel+1))
+					if i < len(keys)-1 {
+						result.WriteString(",")
+					}
+					result.WriteString("\n")
+				}
+			}
+			result.WriteString(fmt.Sprintf("%s]", indent))
 		}
-		result.WriteString(fmt.Sprintf("%s]", indent))
 	} else {
 		message := store.GetFirstMessage()
 		if message != nil {
@@ -146,13 +165,26 @@ func (e *PhpExporter) generatePhpMessage(msg *dynamic.Message, indentLevel int) 
 	})
 
 	fieldCount := 0
-	for _, field := range fields {
-		if fieldCount > 0 {
-			result.WriteString(", ")
+	if e.CompactFormat {
+		// Compact format: all fields on one line
+		for _, field := range fields {
+			if fieldCount > 0 {
+				result.WriteString(", ")
+			}
+			value := msg.GetField(field)
+			result.WriteString(fmt.Sprintf("'%s' => %s", field.GetName(), e.formatPhpValue(value, field, indentLevel+1)))
+			fieldCount++
 		}
-		value := msg.GetField(field)
-		result.WriteString(fmt.Sprintf("'%s' => %s", field.GetName(), e.formatPhpValue(value, field, indentLevel+1)))
-		fieldCount++
+	} else {
+		// Multi-line format: each field on separate line
+		for _, field := range fields {
+			if fieldCount > 0 {
+				result.WriteString(", ")
+			}
+			value := msg.GetField(field)
+			result.WriteString(fmt.Sprintf("'%s' => %s", field.GetName(), e.formatPhpValue(value, field, indentLevel+1)))
+			fieldCount++
+		}
 	}
 
 	result.WriteString("]")

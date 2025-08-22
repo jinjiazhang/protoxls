@@ -10,7 +10,8 @@ import (
 
 // LuaExporter exports configuration data to Lua format
 type LuaExporter struct {
-	OutputDir string // Custom output directory, defaults to DefaultOutputDir if empty
+	OutputDir     string // Custom output directory, defaults to DefaultOutputDir if empty
+	CompactFormat bool   // Whether to compress each data entry to a single line
 }
 
 // ExportResult exports configuration data to Lua format
@@ -97,20 +98,38 @@ func (le *LuaExporter) generateLuaCode(store *TableStore, indentLevel int) strin
 	var result strings.Builder
 
 	if store.HasChildStores() {
-		result.WriteString("{\n")
-		keys := store.GetAllKeys()
-		for i, key := range keys {
-			childStore := store.GetChildStore(key)
-			if childStore != nil {
-				result.WriteString(fmt.Sprintf("%s    [%s] = ", indent, le.formatLuaKey(key)))
-				result.WriteString(le.generateLuaCode(childStore, indentLevel+1))
-				if i < len(keys)-1 {
-					result.WriteString(",")
+		if le.CompactFormat {
+			// Compact format: all on one line
+			result.WriteString("{")
+			keys := store.GetAllKeys()
+			for i, key := range keys {
+				childStore := store.GetChildStore(key)
+				if childStore != nil {
+					result.WriteString(fmt.Sprintf("[%s] = ", le.formatLuaKey(key)))
+					result.WriteString(le.generateLuaCode(childStore, indentLevel+1))
+					if i < len(keys)-1 {
+						result.WriteString(", ")
+					}
 				}
-				result.WriteString("\n")
 			}
+			result.WriteString("}")
+		} else {
+			// Multi-line format
+			result.WriteString("{\n")
+			keys := store.GetAllKeys()
+			for i, key := range keys {
+				childStore := store.GetChildStore(key)
+				if childStore != nil {
+					result.WriteString(fmt.Sprintf("%s    [%s] = ", indent, le.formatLuaKey(key)))
+					result.WriteString(le.generateLuaCode(childStore, indentLevel+1))
+					if i < len(keys)-1 {
+						result.WriteString(",")
+					}
+					result.WriteString("\n")
+				}
+			}
+			result.WriteString(fmt.Sprintf("%s}", indent))
 		}
-		result.WriteString(fmt.Sprintf("%s}", indent))
 	} else {
 		message := store.GetFirstMessage()
 		if message != nil {
@@ -133,13 +152,26 @@ func (le *LuaExporter) generateLuaMessage(msg *dynamic.Message, indentLevel int)
 	fields := descriptor.GetFields()
 	fieldCount := 0
 
-	for _, field := range fields {
-		if fieldCount > 0 {
-			result.WriteString(", ")
+	if le.CompactFormat {
+		// Compact format: all fields on one line
+		for _, field := range fields {
+			if fieldCount > 0 {
+				result.WriteString(", ")
+			}
+			value := msg.GetField(field)
+			result.WriteString(fmt.Sprintf("%s = %s", field.GetName(), le.formatLuaValue(value, field, indentLevel+1)))
+			fieldCount++
 		}
-		value := msg.GetField(field)
-		result.WriteString(fmt.Sprintf("%s = %s", field.GetName(), le.formatLuaValue(value, field, indentLevel+1)))
-		fieldCount++
+	} else {
+		// Multi-line format: each field on separate line
+		for _, field := range fields {
+			if fieldCount > 0 {
+				result.WriteString(", ")
+			}
+			value := msg.GetField(field)
+			result.WriteString(fmt.Sprintf("%s = %s", field.GetName(), le.formatLuaValue(value, field, indentLevel+1)))
+			fieldCount++
+		}
 	}
 
 	result.WriteString("}")

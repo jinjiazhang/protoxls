@@ -21,6 +21,9 @@ func main() {
 	yamlOut := flag.String("yaml_out", "", "Generate YAML files in the specified directory")
 	phpOut := flag.String("php_out", "", "Generate PHP files in the specified directory")
 
+	// Format options
+	compactFormat := flag.Bool("compact", false, "Compress each data entry to a single line (applies to lua, json, php formats)")
+
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [options] -proto <proto_file>\n\n", "protoxls")
 		fmt.Fprintf(flag.CommandLine.Output(), "Protocol buffer configuration table generator.\n\n")
@@ -33,6 +36,7 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -yaml_out=./output      # Generate YAML files in ./output\n", "protoxls")
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -php_out=./output       # Generate PHP files in ./output\n", "protoxls")
 		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -lua_out=./output -json_out=./output  # Generate multiple formats\n", "protoxls")
+		fmt.Fprintf(flag.CommandLine.Output(), "  %s -proto config.proto -json_out=./output -compact        # Generate compact JSON\n", "protoxls")
 	}
 
 	flag.Parse()
@@ -60,11 +64,12 @@ func main() {
 
 	// Configure export options
 	exportConfig := &protoxls.ExportConfig{
-		LuaOutput:  *luaOut,
-		JsonOutput: *jsonOut,
-		BinOutput:  *binOut,
-		YamlOutput: *yamlOut,
-		PhpOutput:  *phpOut,
+		LuaOutput:     *luaOut,
+		JsonOutput:    *jsonOut,
+		BinOutput:     *binOut,
+		YamlOutput:    *yamlOut,
+		PhpOutput:     *phpOut,
+		CompactFormat: *compactFormat,
 	}
 
 	// If no output format specified, default to JSON
