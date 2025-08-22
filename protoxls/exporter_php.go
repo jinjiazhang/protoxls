@@ -2,7 +2,7 @@ package protoxls
 
 import (
 	"fmt"
-	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/jhump/protoreflect/desc"
@@ -33,187 +33,282 @@ func (e *PhpExporter) ExportResult(store *TableStore) error {
 		return fmt.Errorf("failed to write PHP opening tag: %v", err)
 	}
 
-	// Convert store data to interface for PHP export
-	data, err := e.exportStoreToInterface(store)
-	if err != nil {
-		return fmt.Errorf("failed to convert store data: %v", err)
-	}
+	// Export data to PHP format as a complete array with each key-value pair on one line
+	if store.HasChildStores() {
+		// Export as array structure with formatted output
+		keys := store.GetAllKeys()
 
-	// Write the data as a PHP array
-	phpCode := fmt.Sprintf("$%s = %s;\n", variableName, e.convertToPhpArray(data, 0))
-	_, err = file.WriteString(phpCode)
-	if err != nil {
-		return fmt.Errorf("failed to write PHP data: %v", err)
+		// Write variable name and opening bracket
+		if _, err := file.WriteString(fmt.Sprintf("$%s = [\n", variableName)); err != nil {
+			return fmt.Errorf("failed to write variable declaration: %v", err)
+		}
+
+		for i, key := range keys {
+			childStore := store.GetChildStore(key)
+			if childStore != nil {
+				keyStr := e.formatPhpKey(key)
+				childCode := e.generatePhpCode(childStore, 0)
+
+				// Write key-value pair with proper formatting (each pair on one line)
+				lineCode := fmt.Sprintf("    %s => %s", keyStr, childCode)
+				if i < len(keys)-1 {
+					lineCode += ","
+				}
+				lineCode += "\n"
+
+				if _, err := file.WriteString(lineCode); err != nil {
+					return fmt.Errorf("failed to write PHP code: %v", err)
+				}
+			}
+		}
+
+		// Write closing bracket
+		if _, err := file.WriteString("];"); err != nil {
+			return fmt.Errorf("failed to write closing bracket: %v", err)
+		}
+	} else {
+		// Export each message as one line in an array
+		messages := store.GetAllMessages()
+
+		// Write variable name and opening bracket
+		if _, err := file.WriteString(fmt.Sprintf("$%s = [\n", variableName)); err != nil {
+			return fmt.Errorf("failed to write variable declaration: %v", err)
+		}
+
+		for i, message := range messages {
+			messageCode := e.generatePhpMessage(message, 0)
+
+			// Write this message as one line with proper formatting
+			lineCode := fmt.Sprintf("    %s", messageCode)
+			if i < len(messages)-1 {
+				lineCode += ","
+			}
+			lineCode += "\n"
+
+			if _, err := file.WriteString(lineCode); err != nil {
+				return fmt.Errorf("failed to write PHP code: %v", err)
+			}
+		}
+
+		// Write closing bracket
+		if _, err := file.WriteString("];"); err != nil {
+			return fmt.Errorf("failed to write closing bracket: %v", err)
+		}
 	}
 
 	return nil
 }
 
-// exportStoreToInterface converts TableStore to interface{} for PHP export
-func (e *PhpExporter) exportStoreToInterface(store *TableStore) (interface{}, error) {
+// generatePhpCode generates PHP code for the configuration data
+func (e *PhpExporter) generatePhpCode(store *TableStore, indentLevel int) string {
+	indent := strings.Repeat("    ", indentLevel)
+	var result strings.Builder
+
 	if store.HasChildStores() {
-		result := make(map[string]interface{})
+		result.WriteString("[\n")
 		keys := store.GetAllKeys()
-		for _, key := range keys {
+		for i, key := range keys {
 			childStore := store.GetChildStore(key)
 			if childStore != nil {
-				childData, err := e.exportStoreToInterface(childStore)
-				if err != nil {
-					return nil, err
+				result.WriteString(fmt.Sprintf("%s    %s => ", indent, e.formatPhpKey(key)))
+				result.WriteString(e.generatePhpCode(childStore, indentLevel+1))
+				if i < len(keys)-1 {
+					result.WriteString(",")
 				}
-				result[key.String()] = childData
+				result.WriteString("\n")
 			}
 		}
-		return result, nil
+		result.WriteString(fmt.Sprintf("%s]", indent))
 	} else {
-		messages := store.GetAllMessages()
-		if len(messages) == 1 {
-			// Single message, return the message data directly
-			return e.convertMessageToMap(messages[0]), nil
+		message := store.GetFirstMessage()
+		if message != nil {
+			result.WriteString(e.generatePhpMessage(message, indentLevel))
 		} else {
-			// Multiple messages, return as array
-			result := make([]interface{}, len(messages))
-			for i, message := range messages {
-				result[i] = e.convertMessageToMap(message)
-			}
-			return result, nil
+			result.WriteString("[]")
 		}
 	}
+
+	return result.String()
 }
 
-// convertMessageToMap converts a dynamic message to map for PHP serialization
-func (e *PhpExporter) convertMessageToMap(msg *dynamic.Message) map[string]interface{} {
-	result := make(map[string]interface{})
+// generatePhpMessage generates PHP code for a protobuf message with consistent field order
+func (e *PhpExporter) generatePhpMessage(msg *dynamic.Message, indentLevel int) string {
+	var result strings.Builder
+
+	result.WriteString("[")
+
 	descriptor := msg.GetMessageDescriptor()
 	fields := descriptor.GetFields()
+	
+	// Sort fields by field number to maintain proto definition order (consistent with JSON exporter)
+	sort.Slice(fields, func(i, j int) bool {
+		return fields[i].GetNumber() < fields[j].GetNumber()
+	})
 
+	fieldCount := 0
 	for _, field := range fields {
-		value := msg.GetField(field)
-		fieldName := field.GetName()
-
-		if field.IsRepeated() {
-			result[fieldName] = e.convertRepeatedFieldValue(value, field)
-		} else {
-			result[fieldName] = e.convertSingleFieldValue(value, field)
+		if fieldCount > 0 {
+			result.WriteString(", ")
 		}
+		value := msg.GetField(field)
+		result.WriteString(fmt.Sprintf("'%s' => %s", field.GetName(), e.formatPhpValue(value, field, indentLevel+1)))
+		fieldCount++
 	}
 
-	return result
+	result.WriteString("]")
+	return result.String()
 }
 
-// convertSingleFieldValue converts a single field value for PHP serialization
-func (e *PhpExporter) convertSingleFieldValue(value interface{}, field *desc.FieldDescriptor) interface{} {
-	if value == nil {
-		return nil
+// formatPhpValue formats a field value for PHP output
+func (e *PhpExporter) formatPhpValue(value interface{}, field *desc.FieldDescriptor, indentLevel int) string {
+	if field.IsRepeated() {
+		return e.formatPhpArray(value, field, indentLevel)
 	}
 
 	switch field.GetType().String() {
-	case "TYPE_MESSAGE":
-		if dmsg, ok := value.(*dynamic.Message); ok {
-			return e.convertMessageToMap(dmsg)
-		}
-	case "TYPE_ENUM":
-		// Return enum as number
-		return value
-	default:
-		return value
-	}
-
-	return value
-}
-
-// convertRepeatedFieldValue converts repeated field values for PHP serialization
-func (e *PhpExporter) convertRepeatedFieldValue(value interface{}, field *desc.FieldDescriptor) []interface{} {
-	// Handle slice values
-	switch v := value.(type) {
-	case []interface{}:
-		result := make([]interface{}, len(v))
-		for i, item := range v {
-			result[i] = e.convertSingleFieldValue(item, field)
-		}
-		return result
-	default:
-		// If it's not a slice, wrap it in a slice
-		return []interface{}{e.convertSingleFieldValue(value, field)}
-	}
-}
-
-// convertToPhpArray converts Go data structures to PHP array syntax
-func (e *PhpExporter) convertToPhpArray(data interface{}, indent int) string {
-	indentStr := strings.Repeat("    ", indent)
-	nextIndentStr := strings.Repeat("    ", indent+1)
-
-	switch v := data.(type) {
-	case nil:
-		return "null"
-	case bool:
-		if v {
+	case "TYPE_STRING":
+		// Escape quotes and backslashes in strings
+		escaped := strings.ReplaceAll(value.(string), "\\", "\\\\")
+		escaped = strings.ReplaceAll(escaped, "'", "\\'")
+		return fmt.Sprintf("'%s'", escaped)
+	case "TYPE_INT32", "TYPE_SINT32", "TYPE_SFIXED32", "TYPE_UINT32", "TYPE_FIXED32":
+		return fmt.Sprintf("%d", value.(int32))
+	case "TYPE_INT64", "TYPE_SINT64", "TYPE_SFIXED64", "TYPE_UINT64", "TYPE_FIXED64":
+		return fmt.Sprintf("%d", value.(int64))
+	case "TYPE_FLOAT", "TYPE_DOUBLE":
+		return fmt.Sprintf("%g", value)
+	case "TYPE_BOOL":
+		if value.(bool) {
 			return "true"
 		}
 		return "false"
-	case int, int8, int16, int32, int64:
-		return fmt.Sprintf("%v", v)
-	case uint, uint8, uint16, uint32, uint64:
-		return fmt.Sprintf("%v", v)
-	case float32, float64:
-		return fmt.Sprintf("%v", v)
-	case string:
-		// Escape quotes and backslashes in strings
-		escaped := strings.ReplaceAll(v, "\\", "\\\\")
-		escaped = strings.ReplaceAll(escaped, "'", "\\'")
-		return fmt.Sprintf("'%s'", escaped)
-	case []interface{}:
-		if len(v) == 0 {
-			return "[]"
+	case "TYPE_MESSAGE":
+		if msg, ok := value.(*dynamic.Message); ok {
+			return e.generatePhpMessage(msg, indentLevel)
 		}
-		
-		var elements []string
-		for _, item := range v {
-			elements = append(elements, nextIndentStr+e.convertToPhpArray(item, indent+1))
-		}
-		
-		return fmt.Sprintf("[\n%s\n%s]", strings.Join(elements, ",\n"), indentStr)
-	case map[string]interface{}:
-		if len(v) == 0 {
-			return "[]"
-		}
-		
-		var elements []string
-		for key, value := range v {
-			phpKey := fmt.Sprintf("'%s'", strings.ReplaceAll(key, "'", "\\'"))
-			phpValue := e.convertToPhpArray(value, indent+1)
-			elements = append(elements, fmt.Sprintf("%s%s => %s", nextIndentStr, phpKey, phpValue))
-		}
-		
-		return fmt.Sprintf("[\n%s\n%s]", strings.Join(elements, ",\n"), indentStr)
-	default:
-		// Handle other types using reflection
-		rv := reflect.ValueOf(data)
-		switch rv.Kind() {
-		case reflect.Slice, reflect.Array:
-			var elements []string
-			for i := 0; i < rv.Len(); i++ {
-				elements = append(elements, nextIndentStr+e.convertToPhpArray(rv.Index(i).Interface(), indent+1))
-			}
-			if len(elements) == 0 {
-				return "[]"
-			}
-			return fmt.Sprintf("[\n%s\n%s]", strings.Join(elements, ",\n"), indentStr)
-		case reflect.Map:
-			var elements []string
-			for _, key := range rv.MapKeys() {
-				keyStr := fmt.Sprintf("'%v'", key.Interface())
-				value := rv.MapIndex(key).Interface()
-				phpValue := e.convertToPhpArray(value, indent+1)
-				elements = append(elements, fmt.Sprintf("%s%s => %s", nextIndentStr, keyStr, phpValue))
-			}
-			if len(elements) == 0 {
-				return "[]"
-			}
-			return fmt.Sprintf("[\n%s\n%s]", strings.Join(elements, ",\n"), indentStr)
-		default:
-			// Convert to string as fallback
-			return fmt.Sprintf("'%v'", data)
-		}
+	case "TYPE_ENUM":
+		return fmt.Sprintf("%d", value.(int32))
 	}
+
+	return "null"
+}
+
+// formatPhpArray formats array values for PHP output
+func (e *PhpExporter) formatPhpArray(value interface{}, field *desc.FieldDescriptor, indentLevel int) string {
+	v, ok := value.([]interface{})
+	if !ok {
+		return "[]"
+	}
+
+	if len(v) == 0 {
+		return "[]"
+	}
+
+	// Determine element type and format accordingly
+	fieldType := field.GetType().String()
+	var result strings.Builder
+
+	switch fieldType {
+	case "TYPE_INT32", "TYPE_SINT32", "TYPE_SFIXED32", "TYPE_UINT32", "TYPE_FIXED32":
+		// Primitive types: use inline format [val1, val2, val3]
+		result.WriteString("[")
+		for i, item := range v {
+			result.WriteString(fmt.Sprintf("%d", item.(int32)))
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("]")
+
+	case "TYPE_INT64", "TYPE_SINT64", "TYPE_SFIXED64", "TYPE_UINT64", "TYPE_FIXED64":
+		result.WriteString("[")
+		for i, item := range v {
+			result.WriteString(fmt.Sprintf("%d", item.(int64)))
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("]")
+
+	case "TYPE_FLOAT", "TYPE_DOUBLE":
+		result.WriteString("[")
+		for i, item := range v {
+			result.WriteString(fmt.Sprintf("%g", item))
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("]")
+
+	case "TYPE_STRING":
+		result.WriteString("[")
+		for i, item := range v {
+			escaped := strings.ReplaceAll(item.(string), "\\", "\\\\")
+			escaped = strings.ReplaceAll(escaped, "'", "\\'")
+			result.WriteString(fmt.Sprintf("'%s'", escaped))
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("]")
+
+	case "TYPE_BOOL":
+		result.WriteString("[")
+		for i, item := range v {
+			if item.(bool) {
+				result.WriteString("true")
+			} else {
+				result.WriteString("false")
+			}
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("]")
+
+	case "TYPE_ENUM":
+		result.WriteString("[")
+		for i, item := range v {
+			result.WriteString(fmt.Sprintf("%d", item.(int32)))
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("]")
+
+	case "TYPE_MESSAGE":
+		result.WriteString("[")
+		for i, item := range v {
+			if i > 0 {
+				result.WriteString(", ")
+			}
+			if msg, ok := item.(*dynamic.Message); ok {
+				result.WriteString(e.generatePhpMessage(msg, indentLevel+1))
+			} else {
+				result.WriteString("null")
+			}
+		}
+		result.WriteString("]")
+
+	default:
+		// Fallback: treat as strings
+		result.WriteString("[")
+		for i, item := range v {
+			result.WriteString(fmt.Sprintf("'%v'", item))
+			if i < len(v)-1 {
+				result.WriteString(", ")
+			}
+		}
+		result.WriteString("]")
+	}
+
+	return result.String()
+}
+
+// formatPhpKey formats a store key for PHP output
+func (e *PhpExporter) formatPhpKey(key StoreKey) string {
+	if key.KeyType == KeyTypeInteger {
+		return fmt.Sprintf("'%d'", key.IntegerValue)
+	}
+	return fmt.Sprintf("'%s'", strings.ReplaceAll(key.StringValue, "'", "\\'"))
 }
