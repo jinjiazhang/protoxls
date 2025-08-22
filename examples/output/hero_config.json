@@ -1,5 +1,349 @@
 {
-    "1": {"id":1,"name":"亚瑟","description":"传说中的骑士王","type":1,"level":10,"exp":1500,"growth_rate":1.2,"is_unlocked":true,"unlock_levels":[1,5,10,15],"tags":["坦克","近战","物理"],"stat_multipliers":[1.1,1.2,1,1.15],"resistance_types":["物理","魔法","火焰"],"resistance_values":[20,15,10],"base_attr":{"strength":85,"agility":60,"intelligence":45,"vitality":90},"growth_attr":{"strength":5,"agility":3,"intelligence":2,"vitality":6},"skills":[{"skill_id":101,"skill_name":"圣剑斩击","quality":2,"level":5,"damage":250,"cooldown":3,"description":"强力的剑技攻击"},{"skill_id":102,"skill_name":"守护之盾","quality":3,"level":3,"damage":0,"cooldown":8,"description":"提升防御力的技能"}],"equipments":[{"equipment_id":201,"equipment_name":"王者之剑","attack_bonus":50,"defense_bonus":0,"is_special":true},{"equipment_id":202,"equipment_name":"龙鳞盔甲","attack_bonus":0,"defense_bonus":40,"is_special":false}],"level_up_rewards":[{"item_id":301,"quantity":100,"drop_rate":1},{"item_id":302,"quantity":50,"drop_rate":0.8}],"friendship_hero_ids":[2,3,5],"evolution_attrs":[{"strength":100,"agility":80,"intelligence":60,"vitality":110},{"strength":120,"agility":90,"intelligence":70,"vitality":130}]},
-    "2": {"id":2,"name":"梅林","description":"最强的魔法师","type":2,"level":12,"exp":2000,"growth_rate":1.3,"is_unlocked":true,"unlock_levels":[1,8,12,18],"tags":["远程","魔法","AOE"],"stat_multipliers":[0.8,1.5,1.3,0.9],"resistance_types":["魔法","精神","冰霜"],"resistance_values":[25,30,20],"base_attr":{"strength":40,"agility":70,"intelligence":95,"vitality":55},"growth_attr":{"strength":2,"agility":4,"intelligence":7,"vitality":3},"skills":[{"skill_id":201,"skill_name":"火球术","quality":1,"level":8,"damage":180,"cooldown":2.5,"description":"基础火系魔法"},{"skill_id":202,"skill_name":"暴风雪","quality":3,"level":6,"damage":300,"cooldown":6,"description":"大范围冰系魔法"}],"equipments":[{"equipment_id":301,"equipment_name":"智慧法杖","attack_bonus":0,"defense_bonus":20,"is_special":true},{"equipment_id":302,"equipment_name":"法师长袍","attack_bonus":10,"defense_bonus":15,"is_special":false}],"level_up_rewards":[{"item_id":401,"quantity":80,"drop_rate":0.9},{"item_id":402,"quantity":30,"drop_rate":0.7}],"friendship_hero_ids":[1,4,6],"evolution_attrs":[{"strength":50,"agility":90,"intelligence":130,"vitality":70},{"strength":60,"agility":110,"intelligence":150,"vitality":80}]},
-    "3": {"id":3,"name":"勒苟拉斯","description":"精灵神射手","type":3,"level":8,"exp":1200,"growth_rate":1.1,"is_unlocked":false,"unlock_levels":[1,6,11,16],"tags":["远程","敏捷","精准"],"stat_multipliers":[1.3,1.4,0.9,1],"resistance_types":["风","自然"],"resistance_values":[15,25,0],"base_attr":{"strength":65,"agility":90,"intelligence":70,"vitality":75},"growth_attr":{"strength":4,"agility":6,"intelligence":4,"vitality":4},"skills":[{"skill_id":301,"skill_name":"多重射击","quality":1,"level":4,"damage":120,"cooldown":4,"description":"同时射出多支箭"},{"skill_id":302,"skill_name":"穿透之箭","quality":2,"level":7,"damage":200,"cooldown":5,"description":"穿透护甲的特殊箭矢"}],"equipments":[{"equipment_id":401,"equipment_name":"精灵之弓","attack_bonus":60,"defense_bonus":0,"is_special":true},{"equipment_id":402,"equipment_name":"轻甲","attack_bonus":5,"defense_bonus":25,"is_special":false}],"level_up_rewards":[{"item_id":501,"quantity":60,"drop_rate":0.8},{"item_id":502,"quantity":40,"drop_rate":0.6}],"friendship_hero_ids":[1,2,7],"evolution_attrs":[{"strength":80,"agility":120,"intelligence":90,"vitality":95},{"strength":95,"agility":140,"intelligence":105,"vitality":110}]}
+    "1": {
+        "id": 1,
+        "name": "亚瑟",
+        "description": "传说中的骑士王",
+        "type": 1,
+        "level": 10,
+        "exp": 1500,
+        "growth_rate": 1.2,
+        "is_unlocked": true,
+        "unlock_levels": [
+            1,
+            5,
+            10,
+            15
+        ],
+        "tags": [
+            "坦克",
+            "近战",
+            "物理"
+        ],
+        "stat_multipliers": [
+            1.1,
+            1.2,
+            1,
+            1.15
+        ],
+        "resistance_types": [
+            "物理",
+            "魔法",
+            "火焰"
+        ],
+        "resistance_values": [
+            20,
+            15,
+            10
+        ],
+        "base_attr": {
+            "strength": 85,
+            "agility": 60,
+            "intelligence": 45,
+            "vitality": 90
+        },
+        "growth_attr": {
+            "strength": 5,
+            "agility": 3,
+            "intelligence": 2,
+            "vitality": 6
+        },
+        "skills": [
+            {
+                "skill_id": 101,
+                "skill_name": "圣剑斩击",
+                "quality": 2,
+                "level": 5,
+                "damage": 250,
+                "cooldown": 3,
+                "description": "强力的剑技攻击"
+            },
+            {
+                "skill_id": 102,
+                "skill_name": "守护之盾",
+                "quality": 3,
+                "level": 3,
+                "damage": 0,
+                "cooldown": 8,
+                "description": "提升防御力的技能"
+            }
+        ],
+        "equipments": [
+            {
+                "equipment_id": 201,
+                "equipment_name": "王者之剑",
+                "attack_bonus": 50,
+                "defense_bonus": 0,
+                "is_special": true
+            },
+            {
+                "equipment_id": 202,
+                "equipment_name": "龙鳞盔甲",
+                "attack_bonus": 0,
+                "defense_bonus": 40,
+                "is_special": false
+            }
+        ],
+        "level_up_rewards": [
+            {
+                "item_id": 301,
+                "quantity": 100,
+                "drop_rate": 1
+            },
+            {
+                "item_id": 302,
+                "quantity": 50,
+                "drop_rate": 0.8
+            }
+        ],
+        "friendship_hero_ids": [
+            2,
+            3,
+            5
+        ],
+        "evolution_attrs": [
+            {
+                "strength": 100,
+                "agility": 80,
+                "intelligence": 60,
+                "vitality": 110
+            },
+            {
+                "strength": 120,
+                "agility": 90,
+                "intelligence": 70,
+                "vitality": 130
+            }
+        ]
+    },
+    "2": {
+        "id": 2,
+        "name": "梅林",
+        "description": "最强的魔法师",
+        "type": 2,
+        "level": 12,
+        "exp": 2000,
+        "growth_rate": 1.3,
+        "is_unlocked": true,
+        "unlock_levels": [
+            1,
+            8,
+            12,
+            18
+        ],
+        "tags": [
+            "远程",
+            "魔法",
+            "AOE"
+        ],
+        "stat_multipliers": [
+            0.8,
+            1.5,
+            1.3,
+            0.9
+        ],
+        "resistance_types": [
+            "魔法",
+            "精神",
+            "冰霜"
+        ],
+        "resistance_values": [
+            25,
+            30,
+            20
+        ],
+        "base_attr": {
+            "strength": 40,
+            "agility": 70,
+            "intelligence": 95,
+            "vitality": 55
+        },
+        "growth_attr": {
+            "strength": 2,
+            "agility": 4,
+            "intelligence": 7,
+            "vitality": 3
+        },
+        "skills": [
+            {
+                "skill_id": 201,
+                "skill_name": "火球术",
+                "quality": 1,
+                "level": 8,
+                "damage": 180,
+                "cooldown": 2.5,
+                "description": "基础火系魔法"
+            },
+            {
+                "skill_id": 202,
+                "skill_name": "暴风雪",
+                "quality": 3,
+                "level": 6,
+                "damage": 300,
+                "cooldown": 6,
+                "description": "大范围冰系魔法"
+            }
+        ],
+        "equipments": [
+            {
+                "equipment_id": 301,
+                "equipment_name": "智慧法杖",
+                "attack_bonus": 0,
+                "defense_bonus": 20,
+                "is_special": true
+            },
+            {
+                "equipment_id": 302,
+                "equipment_name": "法师长袍",
+                "attack_bonus": 10,
+                "defense_bonus": 15,
+                "is_special": false
+            }
+        ],
+        "level_up_rewards": [
+            {
+                "item_id": 401,
+                "quantity": 80,
+                "drop_rate": 0.9
+            },
+            {
+                "item_id": 402,
+                "quantity": 30,
+                "drop_rate": 0.7
+            }
+        ],
+        "friendship_hero_ids": [
+            1,
+            4,
+            6
+        ],
+        "evolution_attrs": [
+            {
+                "strength": 50,
+                "agility": 90,
+                "intelligence": 130,
+                "vitality": 70
+            },
+            {
+                "strength": 60,
+                "agility": 110,
+                "intelligence": 150,
+                "vitality": 80
+            }
+        ]
+    },
+    "3": {
+        "id": 3,
+        "name": "勒苟拉斯",
+        "description": "精灵神射手",
+        "type": 3,
+        "level": 8,
+        "exp": 1200,
+        "growth_rate": 1.1,
+        "is_unlocked": false,
+        "unlock_levels": [
+            1,
+            6,
+            11,
+            16
+        ],
+        "tags": [
+            "远程",
+            "敏捷",
+            "精准"
+        ],
+        "stat_multipliers": [
+            1.3,
+            1.4,
+            0.9,
+            1
+        ],
+        "resistance_types": [
+            "风",
+            "自然"
+        ],
+        "resistance_values": [
+            15,
+            25,
+            0
+        ],
+        "base_attr": {
+            "strength": 65,
+            "agility": 90,
+            "intelligence": 70,
+            "vitality": 75
+        },
+        "growth_attr": {
+            "strength": 4,
+            "agility": 6,
+            "intelligence": 4,
+            "vitality": 4
+        },
+        "skills": [
+            {
+                "skill_id": 301,
+                "skill_name": "多重射击",
+                "quality": 1,
+                "level": 4,
+                "damage": 120,
+                "cooldown": 4,
+                "description": "同时射出多支箭"
+            },
+            {
+                "skill_id": 302,
+                "skill_name": "穿透之箭",
+                "quality": 2,
+                "level": 7,
+                "damage": 200,
+                "cooldown": 5,
+                "description": "穿透护甲的特殊箭矢"
+            }
+        ],
+        "equipments": [
+            {
+                "equipment_id": 401,
+                "equipment_name": "精灵之弓",
+                "attack_bonus": 60,
+                "defense_bonus": 0,
+                "is_special": true
+            },
+            {
+                "equipment_id": 402,
+                "equipment_name": "轻甲",
+                "attack_bonus": 5,
+                "defense_bonus": 25,
+                "is_special": false
+            }
+        ],
+        "level_up_rewards": [
+            {
+                "item_id": 501,
+                "quantity": 60,
+                "drop_rate": 0.8
+            },
+            {
+                "item_id": 502,
+                "quantity": 40,
+                "drop_rate": 0.6
+            }
+        ],
+        "friendship_hero_ids": [
+            1,
+            2,
+            7
+        ],
+        "evolution_attrs": [
+            {
+                "strength": 80,
+                "agility": 120,
+                "intelligence": 90,
+                "vitality": 95
+            },
+            {
+                "strength": 95,
+                "agility": 140,
+                "intelligence": 105,
+                "vitality": 110
+            }
+        ]
+    }
 }

@@ -177,14 +177,18 @@ func (e *PhpExporter) generatePhpMessage(msg *dynamic.Message, indentLevel int) 
 		}
 	} else {
 		// Multi-line format: each field on separate line
+		indent := strings.Repeat("    ", indentLevel+1)
+		result.WriteString("\n")
 		for _, field := range fields {
-			if fieldCount > 0 {
-				result.WriteString(", ")
-			}
 			value := msg.GetField(field)
-			result.WriteString(fmt.Sprintf("'%s' => %s", field.GetName(), e.formatPhpValue(value, field, indentLevel+1)))
+			result.WriteString(fmt.Sprintf("%s'%s' => %s", indent, field.GetName(), e.formatPhpValue(value, field, indentLevel+1)))
+			if fieldCount < len(fields)-1 {
+				result.WriteString(",")
+			}
+			result.WriteString("\n")
 			fieldCount++
 		}
+		result.WriteString(strings.Repeat("    ", indentLevel))
 	}
 
 	result.WriteString("]")
@@ -309,18 +313,37 @@ func (e *PhpExporter) formatPhpArray(value interface{}, field *desc.FieldDescrip
 		result.WriteString("]")
 
 	case "TYPE_MESSAGE":
-		result.WriteString("[")
-		for i, item := range v {
-			if i > 0 {
-				result.WriteString(", ")
+		if e.CompactFormat {
+			result.WriteString("[")
+			for i, item := range v {
+				if i > 0 {
+					result.WriteString(", ")
+				}
+				if msg, ok := item.(*dynamic.Message); ok {
+					result.WriteString(e.generatePhpMessage(msg, indentLevel+1))
+				} else {
+					result.WriteString("null")
+				}
 			}
-			if msg, ok := item.(*dynamic.Message); ok {
-				result.WriteString(e.generatePhpMessage(msg, indentLevel+1))
-			} else {
-				result.WriteString("null")
+			result.WriteString("]")
+		} else {
+			// Multi-line format for message arrays
+			indent := strings.Repeat("    ", indentLevel)
+			result.WriteString("[\n")
+			for i, item := range v {
+				result.WriteString(fmt.Sprintf("%s    ", indent))
+				if msg, ok := item.(*dynamic.Message); ok {
+					result.WriteString(e.generatePhpMessage(msg, indentLevel+1))
+				} else {
+					result.WriteString("null")
+				}
+				if i < len(v)-1 {
+					result.WriteString(",")
+				}
+				result.WriteString("\n")
 			}
+			result.WriteString(fmt.Sprintf("%s]", indent))
 		}
-		result.WriteString("]")
 
 	default:
 		// Fallback: treat as strings
